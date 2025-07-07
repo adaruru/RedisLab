@@ -1,4 +1,4 @@
-using ap.Redis.RedisConn;
+using AP.Redis.RedisConn;
 
 namespace AP.Redis;
 public static class RedisServiceRegistration
