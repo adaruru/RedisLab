@@ -1,0 +1,67 @@
+services:
+  redis-sentinel-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-sentinel-ap1
+    environment:
+    - ASPNETCORE_HTTP_PORTS=80
+    - TZ=Asia/Taipei
+    ports:
+    - "7001:80"
+
+  master:
+    image: redis
+    container_name: redis-sentinel-master
+    volumes:
+    - ./data/redis-master/data:/data
+    ports:
+    - 6382:6379
+
+  slave1:
+    image: redis
+    container_name: redis-sentinel-slave1
+    volumes:
+    - ./data/redis-slave1/data:/data
+    ports:
+    - 6383:6379
+    command: redis-server --slaveof redis-master 6379
+
+  slave2:
+    image: redis
+    container_name: redis-sentinel-slave2
+    volumes:
+    - ./data/redis-slave2/data:/data
+    ports:
+    - 6384:6379
+    command: redis-server --slaveof redis-master 6379
+
+  sentinel1:
+    image: redis
+    container_name: redis-sentinel-sentinel1
+    ports:
+    - 26379:26379
+    command: >
+      redis-server /data/sentinel.conf --sentinel
+    volumes:
+    - ./sentinel1:/data
+
+  sentinel2:
+    image: redis
+    container_name: redis-sentinel-sentinel2
+    ports:
+    - 26380:26379
+    command: >
+      redis-server /data/sentinel.conf --sentinel
+    volumes:
+    - ./sentinel2:/data
+
+  sentinel3:
+    image: redis
+    container_name: redis-sentinel-sentinel3
+    ports:
+    - 26381:26379
+    command: >
+      redis-server /data/sentinel.conf --sentinel
+    volumes:
+    - ./sentinel3:/data

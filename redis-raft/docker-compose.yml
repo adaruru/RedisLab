@@ -1,9 +1,9 @@
 services:
-  ap1:
+  redis-raft-ap1:
     build:
       context: ../
       dockerfile: AP/Dockerfile
-    container_name: ap1
+    container_name: redis-raft-ap1
     environment:
     - ASPNETCORE_HTTP_PORTS=80
     - TZ=Asia/Taipei

@@ -1,4 +1,15 @@
 services:
+  redis-master-slave-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-master-slave-ap1
+    environment:
+    - ASPNETCORE_HTTP_PORTS=80
+    - TZ=Asia/Taipei
+    ports:
+    - "7000:80"
+
   master:
     image: redis
     container_name: redis-master
@@ -6,6 +17,7 @@ services:
     - ./data/redis-master/data:/data
     ports:
     - 6379:6379
+
   slave1:
     image: redis
     container_name: redis-slave1
@@ -14,8 +26,7 @@ services:
     ports:
     - 6380:6379
     command: redis-server --slaveof redis-master 6379
-    depends_on:
-    - master
+
   slave2:
     image: redis
     container_name: redis-slave2
@@ -24,6 +35,3 @@ services:
     ports:
     - 6381:6379
     command: redis-server --slaveof redis-master 6379
-    depends_on:
-    - master
-    - slave1

@@ -1,0 +1,40 @@
+services:
+  redis-cluster-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-cluster-ap1
+    environment:
+    - ASPNETCORE_HTTP_PORTS=80
+    - TZ=Asia/Taipei
+    ports:
+    - "7000:80"
+
+  master:
+    image: redis
+    container_name: redis-master
+    volumes:
+    - ./data/redis-master/data:/data
+    ports:
+    - 6379:6379
+  slave1:
+    image: redis
+    container_name: redis-slave1
+    volumes:
+    - ./data/redis-slave1/data:/data
+    ports:
+    - 6380:6379
+    command: redis-server --slaveof redis-master 6379
+    depends_on:
+    - master
+  slave2:
+    image: redis
+    container_name: redis-slave2
+    volumes:
+    - ./data/redis-slave2/data:/data
+    ports:
+    - 6381:6379
+    command: redis-server --slaveof redis-master 6379
+    depends_on:
+    - master
+    - slave1
