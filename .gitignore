@@ -341,3 +341,4 @@ healthchecksdb
 /CoreWeb/wwwroot/FileUpload
 /CoreWeb/FileUpload
 redis-sentinel/data/
+redis-master-slave/data/
