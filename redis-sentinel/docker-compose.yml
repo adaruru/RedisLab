@@ -26,7 +26,7 @@ services:
     command: > #--appendonly yes 開啟 AOF
       redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
     depends_on:
-    - redis-master
+    - master
     volumes:
     - ./data/redis-slave1/data:/data
     ports:
@@ -38,8 +38,7 @@ services:
     command: > #--appendonly yes 開啟 AOF
       redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
     depends_on:
-    - redis-master
-    - redis-slave1
+    - master
     volumes:
     - ./data/redis-slave2/data:/data
     ports:
@@ -54,6 +53,8 @@ services:
       redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel1:/data
+    depends_on:
+    - master
 
   sentinel2:
     image: redis
@@ -64,6 +65,8 @@ services:
       redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel2:/data
+    depends_on:
+    - master
 
   sentinel3:
     image: redis
@@ -74,3 +77,5 @@ services:
       redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel3:/data
+    depends_on:
+    - master
