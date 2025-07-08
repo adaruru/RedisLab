@@ -11,34 +11,43 @@ services:
     - "7001:80"
 
   master:
-    image: redis
-    container_name: redis-sentinel-master
+    image: redis:6.2.19
+    container_name: sentinel-master
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db
     volumes:
     - ./data/redis-master/data:/data
     ports:
-    - 6382:6379
+    - "6382:6379"
 
   slave1:
-    image: redis
-    container_name: redis-sentinel-slave1
+    image: redis:6.2.19
+    container_name: sentinel-slave1
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+    - redis-master
     volumes:
     - ./data/redis-slave1/data:/data
     ports:
-    - 6383:6379
-    command: redis-server --slaveof redis-master 6379
+    - "6383:6379"
 
   slave2:
-    image: redis
-    container_name: redis-sentinel-slave2
+    image: redis:6.2.19
+    container_name: sentinel-slave2
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+    - redis-master
+    - redis-slave1
     volumes:
     - ./data/redis-slave2/data:/data
     ports:
-    - 6384:6379
-    command: redis-server --slaveof redis-master 6379
+    - "6384:6379"
 
   sentinel1:
     image: redis
-    container_name: redis-sentinel-sentinel1
+    container_name: sentinel1
     ports:
     - 26379:26379
     command: >
@@ -48,7 +57,7 @@ services:
 
   sentinel2:
     image: redis
-    container_name: redis-sentinel-sentinel2
+    container_name: sentinel2
     ports:
     - 26380:26379
     command: >
@@ -58,7 +67,7 @@ services:
 
   sentinel3:
     image: redis
-    container_name: redis-sentinel-sentinel3
+    container_name: sentinel3
     ports:
     - 26381:26379
     command: >

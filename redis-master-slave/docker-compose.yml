@@ -10,28 +10,37 @@ services:
     ports:
     - "7000:80"
 
-  master:
-    image: redis
+  redis-master:
+    image: redis:6.2.19
     container_name: redis-master
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db
     volumes:
     - ./data/redis-master/data:/data
     ports:
-    - 6379:6379
+    - "6379:6379"
 
-  slave1:
-    image: redis
+  redis-slave1:
+    image: redis:6.2.19
     container_name: redis-slave1
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+    - redis-master
     volumes:
     - ./data/redis-slave1/data:/data
     ports:
-    - 6380:6379
-    command: redis-server --slaveof redis-master 6379
+    - "6380:6379"
 
-  slave2:
-    image: redis
+  redis-slave2:
+    image: redis:6.2.19
     container_name: redis-slave2
+    command: > #--appendonly yes 開啟 AOF
+      redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+    - redis-master
+    - redis-slave1
     volumes:
     - ./data/redis-slave2/data:/data
     ports:
-    - 6381:6379
-    command: redis-server --slaveof redis-master 6379
+    - "6381:6379"
