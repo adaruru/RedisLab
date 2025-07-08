@@ -23,7 +23,7 @@ public class CacheController : ApiBaseController
     public async Task<IActionResult> GetCache([FromQuery] string key)
     {
         var value = await _redis.GetCache(key);
-        return value != null ? Ok(value) : NotFound();
+        return value != null ? Ok(value) : StatusCode(500, $"key{key},not found, and Master ip is {_redis.MasterEndpoint}");
     }
 
     [HttpPost]

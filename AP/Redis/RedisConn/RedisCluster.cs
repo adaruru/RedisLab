@@ -5,7 +5,8 @@ namespace AP.Redis.RedisConn;
 public class RedisCluster : IRedisConn
 {
     private readonly ConnectionMultiplexer _cluster;
-
+    public string MasterEndpoint { get; set; }
+    public string SlaveEndpoint { get; set; }
     public RedisCluster(IConfiguration config)
     {
         var nodes = config.GetSection("Redis:RedisCluster:Nodes").Get<string[]>() ?? [];

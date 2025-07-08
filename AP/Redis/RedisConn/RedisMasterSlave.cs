@@ -8,10 +8,12 @@ public class RedisMasterSlave : IRedisConn
     private readonly ConnectionMultiplexer _slave;
     private readonly List<ConnectionMultiplexer> _slaves = new List<ConnectionMultiplexer>();
     private static readonly Random _random = new();
-
+    public string MasterEndpoint { get; set; }
+    public string SlaveEndpoint { get; set; }
     public RedisMasterSlave(IConfiguration config)
     {
         var section = config.GetSection("Redis:RedisMasterSlaves");
+        MasterEndpoint = section.GetValue<string>("Master") ?? "";
         _master = ConnectionMultiplexer.Connect(section.GetValue<string>("Master")!);
 
         var slaves = section.GetSection("Slaves").Get<string[]>() ?? [];
@@ -21,6 +23,7 @@ public class RedisMasterSlave : IRedisConn
             _slaves.Add(ConnectionMultiplexer.Connect(slave));
         }
         _slave = ConnectionMultiplexer.Connect(slaves.FirstOrDefault() ?? "");
+        SlaveEndpoint = slaves.FirstOrDefault() ?? "";
     }
 
     public async Task<string?> GetCache(string key)
