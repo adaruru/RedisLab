@@ -5,6 +5,7 @@ services:
       dockerfile: AP/Dockerfile
     container_name: redis-cluster-ap1
     environment:
+    - ASPNETCORE_ENVIRONMENT=RedisCluster
     - ASPNETCORE_HTTP_PORTS=80
     - TZ=Asia/Taipei
     ports:

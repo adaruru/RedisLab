@@ -5,6 +5,7 @@ services:
       dockerfile: AP/Dockerfile
     container_name: redis-raft-ap1
     environment:
+    - ASPNETCORE_ENVIRONMENT=RedisRaft
     - ASPNETCORE_HTTP_PORTS=80
     - TZ=Asia/Taipei
     ports:
