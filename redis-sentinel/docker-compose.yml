@@ -14,8 +14,10 @@ services:
   master:
     image: redis:6.2.19
     container_name: sentinel-master
+    environment:
+    - TZ=Asia/Taipei
     command: > #--appendonly yes 開啟 AOF
-      redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db
+      redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db --replica-announce-ip 192.168.1.91 --replica-announce-port 6382
     volumes:
     - ./data/redis-master/data:/data
     ports:
@@ -24,8 +26,10 @@ services:
   slave1:
     image: redis:6.2.19
     container_name: sentinel-slave1
+    environment:
+    - TZ=Asia/Taipei
     command: > #--appendonly yes 開啟 AOF
-      redis-server --replicaof sentinel-slave1 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+      redis-server --replicaof sentinel-master 6379  --repl-diskless-sync yes --repl-diskless-load on-empty-db --replica-announce-ip 192.168.1.91 --replica-announce-port 6383
     depends_on:
     - master
     volumes:
@@ -36,8 +40,10 @@ services:
   slave2:
     image: redis:6.2.19
     container_name: sentinel-slave2
+    environment:
+    - TZ=Asia/Taipei
     command: > #--appendonly yes 開啟 AOF
-      redis-server --replicaof sentinel-slave1 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+      redis-server --replicaof sentinel-master 6379  --repl-diskless-sync yes --repl-diskless-load on-empty-db --replica-announce-ip 192.168.1.91 --replica-announce-port 6384
     depends_on:
     - master
     volumes:
@@ -46,37 +52,42 @@ services:
     - "6384:6379"
 
   sentinel1:
-    image: redis
+    image: redis:6.2.19
     container_name: sentinel1
     ports:
     - 26379:26379
-    command: >
-      redis-server /data/sentinel.conf --sentinel
+    environment:
+    - TZ=Asia/Taipei
+    command: redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel1:/data
     depends_on:
-    - master
+    - slave2
 
   sentinel2:
-    image: redis
+    image: redis:6.2.19
     container_name: sentinel2
     ports:
     - 26380:26379
+    environment:
+    - TZ=Asia/Taipei
     command: >
       redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel2:/data
     depends_on:
-    - master
+    - slave2
 
   sentinel3:
-    image: redis
+    image: redis:6.2.19
     container_name: sentinel3
     ports:
     - 26381:26379
+    environment:
+    - TZ=Asia/Taipei
     command: >
       redis-server /data/sentinel.conf --sentinel
     volumes:
     - ./sentinel3:/data
     depends_on:
-    - master
+    - slave2

@@ -15,7 +15,7 @@ public static class RedisServiceRegistration
                 services.AddSingleton<IRedisConn, RedisMasterSlave>();
                 break;
             case RedisMode.RedisSentinel:
-                services.AddSingleton<IRedisConn, RedisSentinel>();
+                services.AddScoped<IRedisConn, RedisSentinel>();
                 break;
             case RedisMode.RedisCluster:
                 services.AddSingleton<IRedisConn, RedisCluster>();

@@ -1,4 +1,5 @@
 using StackExchange.Redis;
+using static StackExchange.Redis.Role;
 
 namespace AP.Redis.RedisConn;
 
@@ -18,24 +19,41 @@ public class RedisSentinel : IRedisConn
         {
             var section = config.GetSection("Redis:RedisSentinel");
             var masterName = section.GetValue<string>("MasterName") ?? "mymaster";
-            var nodes = section.GetSection("Nodes").Get<string[]>() ?? [];
             var sentinels = section.GetSection("Sentinel").Get<string[]>() ?? [];
 
             var sentinelConfig = new ConfigurationOptions
             {
                 TieBreaker = "",
                 CommandMap = CommandMap.Sentinel,
-                AbortOnConnectFail = false,
-                ServiceName = masterName
+                AbortOnConnectFail = false
             };
 
             foreach (var s in sentinels)
-                sentinelConfig.EndPoints.Add(s);
-            _master = ConnectionMultiplexer.Connect(sentinelConfig);
+            {
+                var (host, port) = ParseEndpoint(s);
+                sentinelConfig.EndPoints.Add(host, port);
+            }
+            var sentinelMux = ConnectionMultiplexer.Connect(sentinelConfig);
 
-            MasterEndpoint = _master.GetEndPoints().FirstOrDefault()?.ToString()??"master map fail";
+            var redisServiceConfig = new ConfigurationOptions()
+            {
+                ServiceName = masterName,
+                AbortOnConnectFail = true,
+                //Password = "",
+            };
 
-            var slaves = nodes.Where(node => node != MasterEndpoint).ToList();
+            var queryMaster = sentinelMux.GetSentinelMasterConnection(redisServiceConfig);
+
+            MasterEndpoint = queryMaster.GetEndPoints()
+                    .Select(ep => queryMaster.GetServer(ep))
+                    .FirstOrDefault(s => !s.IsReplica)?.EndPoint.ToString() ?? "";
+
+            _master = ConnectionMultiplexer.Connect(MasterEndpoint);
+
+            var slaves = queryMaster.GetEndPoints()
+                    .Select(ep => queryMaster.GetServer(ep))
+                    .Where(s => s.IsReplica)
+                    .Select(s => s.EndPoint.ToString());
             foreach (var slave in slaves)
             {
                 _slaves.Add(ConnectionMultiplexer.Connect(slave));
@@ -47,6 +65,14 @@ public class RedisSentinel : IRedisConn
         {
             throw ex;
         }
+    }
+
+    private static (string, int) ParseEndpoint(string endpoint)
+    {
+        var parts = endpoint.Split(':');
+        if (parts.Length != 2 || !int.TryParse(parts[1], out var port))
+            throw new FormatException($"Invalid endpoint format: {endpoint}");
+        return (parts[0], port);
     }
 
     public async Task<string?> GetCache(string key)

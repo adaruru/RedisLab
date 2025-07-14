@@ -1,4 +1,10 @@
 @echo off
+set containers=sentinel-master sentinel-slave1 sentinel-slave2 sentinel1 sentinel2 sentinel3
+
+for %%c in (%containers%) do (
+    echo [%%c] 安裝 ntpdate 並執行時間同步
+    docker exec %%c bash -c "apt update && apt install -y ntpdate && ntpdate time.google.com"
+)
 
 echo ==== sentinel-master ====
 docker exec -it sentinel-master redis-cli info replication | findstr "role"
