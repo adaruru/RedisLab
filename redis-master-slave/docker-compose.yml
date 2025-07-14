@@ -9,7 +9,7 @@ services:
     - ASPNETCORE_HTTP_PORTS=80
     - TZ=Asia/Taipei
     ports:
-    - "7000:80"
+    - "8000:80"
 
   redis-master:
     image: redis:6.2.19

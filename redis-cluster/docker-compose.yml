@@ -9,33 +9,81 @@ services:
     - ASPNETCORE_HTTP_PORTS=80
     - TZ=Asia/Taipei
     ports:
-    - "7000:80"
+    - "8002:80"
 
-  master:
-    image: redis
-    container_name: redis-master
-    volumes:
-    - ./data/redis-master/data:/data
+  redis1:
+    image: redis:6.2.4
+    command: redis-server --port 7000 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
-    - 6379:6379
-  slave1:
-    image: redis
-    container_name: redis-slave1
-    volumes:
-    - ./data/redis-slave1/data:/data
+    - "7000:7000"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7000", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis2:
+    image: redis:6.2.4
+    command: redis-server --port 7001 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
-    - 6380:6379
-    command: redis-server --slaveof redis-master 6379
+    - "7001:7001"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7001", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis3:
+    image: redis:6.2.4
+    command: redis-server --port 7002 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+    - "7002:7002"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7002", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis4:
+    image: redis:6.2.4
+    command: redis-server --port 7003 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+    - "7003:7003"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7003", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis5:
+    image: redis:6.2.4
+    command: redis-server --port 7004 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+    - "7004:7004"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7004", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis6:
+    image: redis:6.2.4
+    command: redis-server --port 7005 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
+    ports:
+    - "7005:7005"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-p", "7005", "cluster", "info" ]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+  redis-cluster-creator:
+    image: redis
+    entrypoint: [ /bin/sh, -c, 'echo "yes" | redis-cli --cluster create redis1:7000 redis2:7001 redis3:7002 redis4:7003 redis5:7004 redis6:7005 --cluster-replicas 1' ]
     depends_on:
-    - master
-  slave2:
-    image: redis
-    container_name: redis-slave2
-    volumes:
-    - ./data/redis-slave2/data:/data
-    ports:
-    - 6381:6379
-    command: redis-server --slaveof redis-master 6379
-    depends_on:
-    - master
-    - slave1
+      redis1:
+        condition: service_healthy
+      redis2:
+        condition: service_healthy
+      redis3:
+        condition: service_healthy
+      redis4:
+        condition: service_healthy
+      redis5:
+        condition: service_healthy
+      redis6:
+        condition: service_healthy
