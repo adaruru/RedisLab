@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using static StackExchange.Redis.Role;
@@ -43,7 +44,7 @@ public class RedisCluster : IRedisConn
     public async Task<string?> ReadAsync(string key)
     {
         var db = _cluster.GetDatabase();
-        return await db.StringGetAsync(key);
+        return await db.StringGetAsync(key, CommandFlags.PreferReplica);
     }
 
     public Task<string?> GetRamdonCache(string key)
@@ -54,10 +55,24 @@ public class RedisCluster : IRedisConn
     public async Task<bool> WriteAsync(string key, string value)
     {
         var db = _cluster.GetDatabase();
-        return await db.StringSetAsync(key, value);
+        return await db.StringSetAsync(key, value, flags: CommandFlags.DemandMaster);
     }
     public bool FillCluster()
     {
-        return true;
+        try
+        {
+            var db = _cluster.GetDatabase();
+            for (int i = 0; i < 1000000; i++)
+            {
+                string key = $"{i}:test:key:{i}:{Guid.NewGuid():N}"; //ÀH¾÷ key¡]Åý slot ¤À´²¡^
+                string value = $"test:value:{i}";
+                db.StringSet(key, value, flags: CommandFlags.DemandMaster);
+            }
+            return db.StringSet("FillClusterFinal", "FillClusterFinal", flags: CommandFlags.DemandMaster);
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
     }
 }
