@@ -13,7 +13,7 @@ public class RedisRaft : IRedisConn
         _raft = ConnectionMultiplexer.Connect(string.Join(",", nodes));
     }
 
-    public async Task<string?> GetCache(string key)
+    public async Task<string?> ReadAsync(string key)
     {
         var db = _raft.GetDatabase();
         return await db.StringGetAsync(key);
@@ -23,7 +23,7 @@ public class RedisRaft : IRedisConn
     {
         throw new NotImplementedException();
     }
-    public async Task<bool> UpdateCache(string key, string value)
+    public async Task<bool> WriteAsync(string key, string value)
     {
         var db = _raft.GetDatabase();
         return await db.StringSetAsync(key, value);

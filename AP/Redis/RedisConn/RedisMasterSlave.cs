@@ -26,7 +26,7 @@ public class RedisMasterSlave : IRedisConn
         SlaveEndpoint = slaves.FirstOrDefault() ?? "";
     }
 
-    public async Task<string?> GetCache(string key)
+    public async Task<string?> ReadAsync(string key)
     {
         //var db = _master.GetDatabase();
         var db = _slave.GetDatabase();
@@ -48,7 +48,7 @@ public class RedisMasterSlave : IRedisConn
         return null;
     }
 
-    public async Task<bool> UpdateCache(string key, string value)
+    public async Task<bool> WriteAsync(string key, string value)
     {
         var db = _master.GetDatabase();
         return await db.StringSetAsync(key, value);

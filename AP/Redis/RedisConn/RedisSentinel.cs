@@ -30,7 +30,7 @@ public class RedisSentinel : IRedisConn
 
             foreach (var s in sentinels)
             {
-                var (host, port) = ParseEndpoint(s);
+                var (host, port) = EndpointUtil.ParseEndpoint(s);
                 sentinelConfig.EndPoints.Add(host, port);
             }
             var sentinelMux = ConnectionMultiplexer.Connect(sentinelConfig);
@@ -67,15 +67,7 @@ public class RedisSentinel : IRedisConn
         }
     }
 
-    private static (string, int) ParseEndpoint(string endpoint)
-    {
-        var parts = endpoint.Split(':');
-        if (parts.Length != 2 || !int.TryParse(parts[1], out var port))
-            throw new FormatException($"Invalid endpoint format: {endpoint}");
-        return (parts[0], port);
-    }
-
-    public async Task<string?> GetCache(string key)
+    public async Task<string?> ReadAsync(string key)
     {
         //var db = _master.GetDatabase();
         var db = _slave.GetDatabase();
@@ -96,7 +88,7 @@ public class RedisSentinel : IRedisConn
         return null;
     }
 
-    public async Task<bool> UpdateCache(string key, string value)
+    public async Task<bool> WriteAsync(string key, string value)
     {
         var db = _master.GetDatabase();
         return await db.StringSetAsync(key, value);
