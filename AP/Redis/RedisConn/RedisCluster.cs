@@ -1,15 +1,13 @@
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.Extensions.Options;
-using StackExchange.Redis;
-using static StackExchange.Redis.Role;
+ï»¿using StackExchange.Redis;
 
 namespace AP.Redis.RedisConn;
 
 public class RedisCluster : IRedisConn
 {
-    private readonly ConnectionMultiplexer _cluster;
     public string MasterEndpoint { get; set; } = "RedisCluster not set";
     public string SlaveEndpoint { get; set; } = "RedisCluster not set";
+    private ConnectionMultiplexer _cluster;
+    public ConfigurationOptions ClusterConfig { get; set; }
     public RedisCluster(IConfiguration config)
     {
         try
@@ -17,27 +15,45 @@ public class RedisCluster : IRedisConn
             var section = config.GetSection("Redis:RedisCluster");
             var nodes = section.GetSection("Nodes").Get<string[]>() ?? [];
 
-            var clusterConfig = new ConfigurationOptions
+            ClusterConfig = new ConfigurationOptions
             {
                 AbortOnConnectFail = false,
                 ConnectRetry = 5,
                 SyncTimeout = 5000,
-                CommandMap = CommandMap.Create(new HashSet<string>
-                    // ¸T¥Î¤£¤ä´© cluster ªº©R¥O
-                    { "INFO", "CONFIG", "CLUSTER", "PING" }, available: false),
+                ConnectTimeout = 60000,
                 AllowAdmin = true,
+                DefaultVersion = new Version(6, 2, 19),
                 TieBreaker = "",
             };
             foreach (var s in nodes)
             {
                 var (host, port) = EndpointUtil.ParseEndpoint(s);
-                clusterConfig.EndPoints.Add(host, port);
+                ClusterConfig.EndPoints.Add(host, port);
             }
-            _cluster = ConnectionMultiplexer.Connect(clusterConfig);
+            _cluster = ConnectionMultiplexer.Connect(ClusterConfig);
+
+            foreach (var ep in _cluster.GetEndPoints())
+            {
+                var server = _cluster.GetServer(ep);
+                if (server.IsConnected) server.Ping();
+            }
+
+            _cluster.ConnectionFailed += (_, e) =>
+            {
+                Console.WriteLine($"[Redis] ConnectionFailed: {e.EndPoint}, {e.FailureType}, {e.Exception?.Message}");
+            };
+
+            _cluster.ConnectionRestored += (_, e) =>
+            {
+                Console.WriteLine($"[Redis] ConnectionRestored: {e.EndPoint}");
+            };
+
+            _cluster.ConfigurationChanged += (_, _) => Console.WriteLine("[Redis] ConfigurationChanged");
         }
         catch (Exception ex)
         {
-            throw ex;
+            Console.WriteLine($"[RedisCluster] Initialization failed: {ex.Message}");
+            throw;
         }
     }
 
@@ -57,22 +73,24 @@ public class RedisCluster : IRedisConn
         var db = _cluster.GetDatabase();
         return await db.StringSetAsync(key, value, flags: CommandFlags.DemandMaster);
     }
-    public bool FillCluster()
+    public async Task<bool> FillCluster()
     {
-        try
+
+        for (int i = 0; i < 10000; i++)
         {
-            var db = _cluster.GetDatabase();
-            for (int i = 0; i < 1000000; i++)
+            try
             {
-                string key = $"{i}:test:key:{i}:{Guid.NewGuid():N}"; //ÀH¾÷ key¡]Åý slot ¤À´²¡^
+                var db = _cluster.GetDatabase();
+                string key = $"test:key:{i}:{Guid.NewGuid():N}"; //éš¨æ©Ÿ keyï¼ˆè®“ slot åˆ†æ•£ï¼‰
                 string value = $"test:value:{i}";
-                db.StringSet(key, value, flags: CommandFlags.DemandMaster);
+                await db.StringSetAsync(key, value, flags: CommandFlags.DemandMaster);
             }
-            return db.StringSet("FillClusterFinal", "FillClusterFinal", flags: CommandFlags.DemandMaster);
+            catch (Exception ex)
+            {
+                continue;
+            }
         }
-        catch (Exception ex)
-        {
-            return false;
-        }
+        var db2 = _cluster.GetDatabase();
+        return await db2.StringSetAsync("FillClusterFinal", "FillClusterFinal", flags: CommandFlags.DemandMaster);
     }
 }

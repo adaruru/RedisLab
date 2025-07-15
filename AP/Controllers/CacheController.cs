@@ -40,16 +40,29 @@ public class CacheController : ApiBaseController
     [HttpGet]
     public async Task<IActionResult> FillCluster()
     {
-        var modeStr = _config.GetValue<string>("Redis:Mode") ?? "RedisMasterSlaves";
-        if (!Enum.TryParse<RedisMode>(modeStr, ignoreCase: true, out var mode))
-            throw new Exception($"Unsupported Redis mode: {modeStr}");
-        if (mode == RedisMode.RedisCluster)
+        try
         {
-            var redis = new RedisCluster(_config);
-            redis.FillCluster();
-            return Ok($"Redis:Mode:{modeStr}，填充測試資料完成");
+            var modeStr = _config.GetValue<string>("Redis:Mode") ?? "RedisMasterSlaves";
+            if (!Enum.TryParse<RedisMode>(modeStr, ignoreCase: true, out var mode))
+                throw new Exception($"Unsupported Redis mode: {modeStr}");
+            if (mode == RedisMode.RedisCluster)
+            {
+                var redis = new RedisCluster(_config);
+                var result = await redis.FillCluster();
+                if (result)
+                {
+                    return Ok($"Redis:Mode:{modeStr}，填充測試資料完成");
+                }
+                else return Ok($"填充測試失敗");
+
+            }
+            return Ok($"Redis:Mode:{modeStr}，不做填充測試");
         }
-        return Ok($"Redis:Mode:{modeStr}，不做填充測試");
+        catch (Exception ex)
+        {
+            return Ok($"Exception: {ex.ToString()}");
+        }
+
     }
 }
 public class CacheRequest
