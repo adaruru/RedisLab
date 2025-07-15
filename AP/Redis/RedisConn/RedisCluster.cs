@@ -29,4 +29,8 @@ public class RedisCluster : IRedisConn
         var db = _cluster.GetDatabase();
         return await db.StringSetAsync(key, value);
     }
+    public bool FillCluster()
+    {
+        return true;
+    }
 }

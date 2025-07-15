@@ -11,8 +11,9 @@ services:
     ports:
     - "8002:80"
 
-  redis1:
+  node1:
     image: redis:6.2.4
+    container_name: node1
     command: redis-server --port 7000 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7000:7000"
@@ -21,8 +22,10 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
-  redis2:
+
+  node2:
     image: redis:6.2.4
+    container_name: node2
     command: redis-server --port 7001 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7001:7001"
@@ -31,8 +34,10 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
-  redis3:
+
+  node3:
     image: redis:6.2.4
+    container_name: node3
     command: redis-server --port 7002 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7002:7002"
@@ -41,8 +46,10 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
-  redis4:
+
+  node4:
     image: redis:6.2.4
+    container_name: node4
     command: redis-server --port 7003 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7003:7003"
@@ -51,8 +58,10 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
-  redis5:
+
+  node5:
     image: redis:6.2.4
+    container_name: node5
     command: redis-server --port 7004 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7004:7004"
@@ -61,8 +70,10 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
-  redis6:
+
+  node6:
     image: redis:6.2.4
+    container_name: node6
     command: redis-server --port 7005 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000 --appendonly yes
     ports:
     - "7005:7005"
@@ -71,6 +82,7 @@ services:
       interval: 1s
       timeout: 3s
       retries: 30
+
   redis-cluster-creator:
     image: redis
     entrypoint: [ /bin/sh, -c, 'echo "yes" | redis-cli --cluster create redis1:7000 redis2:7001 redis3:7002 redis4:7003 redis5:7004 redis6:7005 --cluster-replicas 1' ]

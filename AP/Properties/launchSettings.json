@@ -1,7 +1,7 @@
 ﻿{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "MasterSlaves": {
+    "RedisMasterSlaves": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
@@ -11,7 +11,7 @@
         "ASPNETCORE_ENVIRONMENT": "RedisMasterSlaves"
       }
     },
-    "Sentinel": {
+    "RedisSentinel": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
@@ -21,7 +21,7 @@
         "ASPNETCORE_ENVIRONMENT": "RedisSentinel"
       }
     },
-    "Cluster": {
+    "RedisCluster": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
