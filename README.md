@@ -10,7 +10,7 @@
 
 ### Redis 單機瓶頸 
 
-![應用架構衍生背景 - visual selection (../ReadingNote/後端筆記/.attach/.RedisLab/應用架構衍生背景 - visual selection (1).png)](.attach/.RedisLab/應用架構衍生背景 - visual selection (1).png)
+![應用架構衍生背景 - visual selection (1)](.attach/.README/應用架構衍生背景 - visual selection (1).png)
 
 ### Redis 單機瓶頸 
 
@@ -36,9 +36,9 @@
 
 參考：https://hackmd.io/@tienyulin/redis-master-slave-replication-sentinel-cluster
 
-### 主從複製 Master-Slave Replication
+### 主從複製 
 
-一主多從，解決 [^A不具備資料持久性] ，從 server 做到簡單備援。
+Master-Slave Replication 一主多從，解決 [^A不具備資料持久性] ，從 server 做到簡單備援。
 
 主 server 單點寫入，從 server 讀取，做到讀寫分離，解決 [^B 單機 IO 壓力集中 ]。
 
@@ -55,9 +55,9 @@
 redis-cli MODULE LIST
 ```
 
-### 哨兵模式 Sentinel 
+### 哨兵模式 
 
-主從複製的基礎上，解決 [^A不具備資料持久性] 、 [^B 單機 IO 壓力集中 ]。
+Sentinel 主從複製的基礎上，解決 [^A不具備資料持久性] 、 [^B 單機 IO 壓力集中 ]。
 
 搭配 Sentinel「只做監控、不儲存資料」的執行緒，透過投票 vote quorum 主從切換，使服務自動切換備援，解決[^C不具備HA ]。
 
@@ -120,7 +120,7 @@ Redis Sentinel 的 tilt mode 是為了保護叢集，在系統時間出現「快
 
 ### 叢集模式
 
-多主多從，解決 [^A不具備資料持久性] 、 [^B 單機 IO 壓力集中 ]。
+Cluster 多主多從，解決 [^A不具備資料持久性] 、 [^B 單機 IO 壓力集中 ]。
 
 節點之間會自行運作 Gossip 協議，使服務自動切換備援，解決[^C不具備HA ]。
 
@@ -163,11 +163,13 @@ flowchart TB
 
 #### Gossip 協議
 
-每個 master 配一個或多個 slave，當 master 掛掉，slave 自動接管（Fail-Over）
+Gossip protocol 讓節點彼此交換狀態資訊，實作分散式健康檢查與節點發現。
 
-服務需要實作自動重試、轉向存活節點，以保證服務不中斷
-
-bus-port 預設是 server 1+port，若 server 7000 bus-port 17000
+- 每個節點定期隨機挑幾個節點溝通，檢查其他節點是否存活
+- 傳遞哪些節點掛了（FAIL）或恢復（OK）
+- 節點間彼此同步彼此看到的狀態，分散式傳播某個節點的失效資訊（去中心化），不依賴單一 Master、Sentinel 
+- bus-port 預設是 server 1+port，若 server 6379 那溝通的 bus-port 就是 16379 
+- 每個 master 配一個或多個 slave，當 master 掛掉，slave 自動接管（Fail-Over）
 
 #### 實作要點
 
@@ -178,6 +180,10 @@ bus-port 預設是 server 1+port，若 server 7000 bus-port 17000
 沒有刪除乾淨，就會在redis-cluster creator 看到這個錯誤
 
 2025-07-15 17:37:29 [ERR] Node 192.168.1.91:7001 is not empty. Either the node already knows other nodes (check with CLUSTER NODES) or contains some key in database 0.
+
+##### UI 可看到 Master 所有資料，但只有 Slot Owner 可以編輯自己的資料
+
+範例 Update Cache  "xxxxxxx" node 1、node 2 node 3 
 
 ##### Lib 實體要 AddScoped
 
@@ -570,18 +576,7 @@ gem install redis
 
 Once all dependencies are installed, retry the Redis cluster creation command from Step 5.
 
-### Gossip protocol
 
-Redis Cluster 使用 **Gossip 協定** 讓節點彼此交換狀態資訊，實作分散式健康檢查與節點發現。
-
-- 每個節點定期隨機挑幾個節點溝通
-- 傳遞哪些節點掛了（FAIL）或恢復（OK）
-- 節點間彼此同步彼此看到的狀態，達成共識
-
-#### 作用：
-
-- 檢查其他節點是否存活
-- 分散式傳播某個節點的失效資訊（避免中心化單點）
 
 ### redis vote quorum
 
