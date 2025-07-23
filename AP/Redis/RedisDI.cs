@@ -1,7 +1,7 @@
 using AP.Redis.RedisConn;
 
 namespace AP.Redis;
-public static class RedisServiceRegistration
+public static class RedisDI
 {
     public static IServiceCollection AddRedisService(this IServiceCollection services, IConfiguration config)
     {
