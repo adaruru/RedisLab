@@ -1,5 +1,50 @@
 # Redis 架構說明
 
+本專案為 Redis 高可用性架構的實作範例，透過 ASP.NET Core 9 Web API 與 Docker Compose 展示四種 Redis 部署模式：**主從複製（Master-Slave）**、**哨兵模式（Sentinel）**、**叢集模式（Cluster）** 與 **Raft 共識（RedisRaft）**。
+
+## 專案特色
+
+- **多架構實作**：涵蓋 Redis 從基礎備援到高可用性與水平擴展的完整演進
+- **容器化部署**：所有架構皆使用 Docker Compose 一鍵啟動，便於學習與測試
+- **實務導向**：包含連線管理、讀寫分離、自動故障轉移（Failover）等生產環境考量
+- **完整文件**：詳細說明各架構原理、同步機制、CAP 特性與實作注意事項
+
+## 技術棧
+
+- **.NET 9** - ASP.NET Core Web API
+- **StackExchange.Redis** - Redis client library
+- **Docker & Docker Compose** - 容器化部署
+- **Redis 6.2.19** - Redis server
+
+## 專案結構
+
+```
+RedisLab/
+├── AP/                          # ASP.NET Core Web API 專案
+│   ├── Controllers/             # API 控制器（CacheController）
+│   ├── Redis/                   # Redis 連線實作
+│   │   ├── RedisConn/          # 各架構實作類別
+│   │   │   ├── RedisMasterSlave.cs    # 主從複製
+│   │   │   ├── RedisSentinel.cs       # 哨兵模式
+│   │   │   ├── RedisCluster.cs        # 叢集模式
+│   │   │   └── RedisRaft.cs           # Raft 共識
+│   │   └── RedisDI.cs          # 依賴注入設定
+│   └── appsettings.json        # 各架構連線設定
+├── redis-master-slave/          # 主從複製 Docker Compose
+├── redis-sentinel/              # 哨兵模式 Docker Compose
+├── redis-cluster/               # 叢集模式 Docker Compose
+└── redis-raft/                  # Raft 共識 Docker Compose
+```
+
+## API 端點
+
+- `GET /Cache/GetCache?key={key}` - 讀取快取（從 Slave/Replica 讀取）
+- `POST /Cache/UpdateCache` - 寫入快取（寫入 Master）
+  ```json
+  { "key": "testKey", "value": "testValue" }
+  ```
+- `GET /Cache/FillCluster` - 批次填充 Cluster 測試資料
+
 作者：Amanda
 
 日期：2025/07/23
