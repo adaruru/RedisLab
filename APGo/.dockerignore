@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Binaries
+bin/
+*.exe
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation
+*.md
+!README.md
+
+# Local config
+config.local.json
+config.local.yaml
+
+# Test files
+*_test.go
+
+# Data
+data/

@@ -5,7 +5,8 @@
       "Bash(tree:*)",
       "Bash(go get:*)",
       "Bash(go build:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

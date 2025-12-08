@@ -1,0 +1,17 @@
+# Docker Cluster 環境設定
+server:
+  port: 8080
+  mode: release
+
+redis:
+  mode: RedisCluster
+
+  cluster:
+    description: "Docker Compose 叢集模式"
+    nodes:
+      - "redis-node1:6379"
+      - "redis-node2:6379"
+      - "redis-node3:6379"
+      - "redis-node4:6379"
+      - "redis-node5:6379"
+      - "redis-node6:6379"

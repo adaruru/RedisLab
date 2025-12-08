@@ -1,0 +1,15 @@
+# Docker Sentinel 環境設定
+server:
+  port: 8080
+  mode: release
+
+redis:
+  mode: RedisSentinel
+
+  sentinel:
+    description: "Docker Compose 哨兵模式"
+    master_name: "mymaster"
+    sentinels:
+      - "sentinel1:26379"
+      - "sentinel2:26379"
+      - "sentinel3:26379"

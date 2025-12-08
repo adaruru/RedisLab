@@ -1,0 +1,14 @@
+# Docker Raft 環境設定
+server:
+  port: 8080
+  mode: release
+
+redis:
+  mode: RedisRaft
+
+  raft:
+    description: "Docker Compose Raft 模式"
+    nodes:
+      - "redis-raft1:6379"
+      - "redis-raft2:6379"
+      - "redis-raft3:6379"

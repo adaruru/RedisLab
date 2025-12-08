@@ -18,37 +18,31 @@ type RedisMasterSlave struct {
 	slaveEndpoint  string
 }
 
-// RedisMasterSlaveConfig 主從模式設定
-type RedisMasterSlaveConfig struct {
-	Master string   `json:"master" yaml:"master"`
-	Slaves []string `json:"slaves" yaml:"slaves"`
-}
-
 // NewRedisMasterSlave 建立新的主從模式 Redis 連線
-func NewRedisMasterSlave(config RedisMasterSlaveConfig) (*RedisMasterSlave, error) {
-	if config.Master == "" {
+func NewRedisMasterSlave(master string, slaves []string) (*RedisMasterSlave, error) {
+	if master == "" {
 		return nil, fmt.Errorf("master endpoint is required")
 	}
 
 	// 連線到 Master
-	master := goredis.NewClient(&goredis.Options{
-		Addr: config.Master,
+	masterClient := goredis.NewClient(&goredis.Options{
+		Addr: master,
 	})
 
 	// 測試 Master 連線
 	ctx := context.Background()
-	if err := master.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to connect to master %s: %w", config.Master, err)
+	if err := masterClient.Ping(ctx).Err(); err != nil {
+		return nil, fmt.Errorf("failed to connect to master %s: %w", master, err)
 	}
 
 	rms := &RedisMasterSlave{
-		master:         master,
-		masterEndpoint: config.Master,
-		slaves:         make([]*goredis.Client, 0, len(config.Slaves)),
+		master:         masterClient,
+		masterEndpoint: master,
+		slaves:         make([]*goredis.Client, 0, len(slaves)),
 	}
 
 	// 連線到所有 Slaves
-	for _, slaveAddr := range config.Slaves {
+	for _, slaveAddr := range slaves {
 		slave := goredis.NewClient(&goredis.Options{
 			Addr: slaveAddr,
 		})
@@ -71,8 +65,8 @@ func NewRedisMasterSlave(config RedisMasterSlaveConfig) (*RedisMasterSlave, erro
 
 	// 如果沒有可用的 Slave，使用 Master 作為備用
 	if rms.slave == nil {
-		rms.slave = master
-		rms.slaveEndpoint = config.Master
+		rms.slave = masterClient
+		rms.slaveEndpoint = master
 	}
 
 	return rms, nil

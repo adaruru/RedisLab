@@ -67,12 +67,58 @@ APGo/
 - 實作讀寫分離邏輯（Master 寫入，Slave 讀取）
 - 處理連線和錯誤
 
+#### 步驟 4.1 確認不同環境如何設定練線設定
+- 參考 AP\appsettings.json 設定 "Redis": 且在 program 讀取設定，compose 階段指定環境變數
+- 確認 go gin 如何配置環境變數
+- 參考 redis-master-slave\docker-compose-ap-go.yml
+- 編輯 redis-master-slave\docker-compose-ap-go.yml 新增啟動 compose
+
+#### 步驟 4.2 修改環境變數檔案最佳實作
+  - AP\appsettings.json
+  - AP\appsettings.RedisMasterSlaves.json
+  - 這是 .Net core convention，我確認了 config 來自 Viper 套件
+  - 請修改成 Golang 最佳實作，或是 Viper 最佳實作
+ 
+  1. 設定檔改為 Go/Viper 的最佳實作方式。Go 社群通常使用 YAML 格式，檔名使用 config.yaml 而非 appsettings.json。
+  2. snake_case 命名
+  3. 標準環境變數 GO_ENV 是 Go 社群標準
+  4. 使用 mapstructure 而非 json/yaml
+  5. 支援多個搜尋路徑、可放在系統設定目錄
+
+#### 步驟 4.3 修改環境變數要具有測試鑑別度
+ - docker-compose-ap-go.yml，使用 GO_ENV=docker 而非 ASPNETCORE_ENVIRONMENT=RedisMasterSlaves
+ - 但我有多個實作要測試，四種架構四種環境，
+   1. AP\appsettings.RedisCluster.json
+   2. AP\appsettings.RedisMasterSlaves.json
+   3. AP\appsettings.RedisSentinel.json
+   4. AP\appsettings.RedisRaft.json
+ - 你現在的 GO_ENV=docker 沒有任何識別度，確認我的考量有意義
+ - 說明 GO_ENV=docker 沒有任何識別度，卻比較好的原因
+ - 環境 = Redis 模式: 是因為這只是 Lib POC 專案
+ - 現實環境，Redis 模式不會因環境的變化，環境變數覆蓋並不易於閱讀，在實際專案也不會有這個需求
+
+  1. 這是 POC 專案：專門測試不同 Redis 架構
+  2. 環境 = Redis 模式（實用主義）
+  3. APGo/
+├── config.yaml              # 開發環境（預設）
+├── config.master-slave.yaml # Docker 主從模式
+├── config.sentinel.yaml     # Docker 哨兵模式
+├── config.cluster.yaml      # Docker 叢集模式
+└── config.raft.yaml         # Docker Raft 模式
+  4. 識別度高：環境名稱 = Redis 模式，一看就懂
+  5. 生產環境一旦選定架構就固定了（不會今天用 Cluster，明天改 Sentinel）
+  6. 環境變數覆蓋不易於閱讀
+  7. GO_ENV=master-slave  # ✅ 清楚明確
+
+
 ### 步驟 5: 實作 RedisSentinel 連線
 
 - 建立 `RedisSentinel` 結構，實作 `IRedisConn` 介面
-- 使用 Sentinel 模式連線
-- 實作自動故障轉移支援
-- 取得 Master/Slave 端點資訊
+  - 使用 Sentinel 模式連線
+  - 實作自動故障轉移支援
+  - 取得 Master/Slave 端點資訊
+  - 參考 redis-sentinel\docker-compose.yml
+  - 編輯 redis-sentinel\docker-compose-ap-go.yml 新增啟動 compose
 
 ### 步驟 6: 實作 RedisCluster 連線
 
@@ -80,6 +126,8 @@ APGo/
 - 使用 Redis Cluster 模式
 - 實作 `FillCluster()` 方法填充測試資料
 - 處理叢集節點路由
+- 參考 redis-cluster\docker-compose.yml
+- 編輯 redis-cluster\docker-compose-ap-go.yml 新增啟動 compose
 
 ### 步驟 7: 實作 RedisRaft 連線
 

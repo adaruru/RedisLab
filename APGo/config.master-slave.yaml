@@ -1,0 +1,14 @@
+# Docker Master-Slave 環境設定
+server:
+  port: 8080
+  mode: release
+
+redis:
+  mode: RedisMasterSlaves
+
+  master_slave:
+    description: "Docker Compose 主從模式"
+    master: "redis-master:6379"
+    slaves:
+      - "redis-slave1:6379"
+      - "redis-slave2:6379"

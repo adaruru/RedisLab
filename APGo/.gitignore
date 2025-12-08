@@ -29,5 +29,5 @@ go.work
 *~
 
 # Config files (local only)
-config.local.json
 config.local.yaml
+config.*.local.yaml

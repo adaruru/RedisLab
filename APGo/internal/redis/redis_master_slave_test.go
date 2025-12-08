@@ -14,30 +14,27 @@ func TestRedisMasterSlaveImplementsInterface(t *testing.T) {
 func TestNewRedisMasterSlave(t *testing.T) {
 	tests := []struct {
 		name    string
-		config  RedisMasterSlaveConfig
+		master  string
+		slaves  []string
 		wantErr bool
 	}{
 		{
-			name: "empty master should fail",
-			config: RedisMasterSlaveConfig{
-				Master: "",
-				Slaves: []string{},
-			},
+			name:    "empty master should fail",
+			master:  "",
+			slaves:  []string{},
 			wantErr: true,
 		},
 		{
-			name: "valid config structure",
-			config: RedisMasterSlaveConfig{
-				Master: "localhost:6379",
-				Slaves: []string{"localhost:6380"},
-			},
+			name:    "valid config structure",
+			master:  "localhost:6379",
+			slaves:  []string{"localhost:6380"},
 			wantErr: false, // Note: 實際連線可能失敗，但結構是有效的
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewRedisMasterSlave(tt.config)
+			_, err := NewRedisMasterSlave(tt.master, tt.slaves)
 			if (err != nil) != tt.wantErr {
 				if tt.name == "empty master should fail" {
 					return // 預期錯誤

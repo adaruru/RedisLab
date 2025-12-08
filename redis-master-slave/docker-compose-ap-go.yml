@@ -1,0 +1,77 @@
+services:
+  redis-master-slave-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-master-slave-ap1
+    environment:
+      - ASPNETCORE_ENVIRONMENT=RedisMasterSlaves
+      - ASPNETCORE_HTTP_PORTS=80
+      - TZ=Asia/Taipei
+    ports:
+      - "8000:80"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+    networks:
+      - redis-network
+
+  redis-master-slave-apgo:
+    build:
+      context: ../
+      dockerfile: APGo/Dockerfile
+    container_name: redis-master-slave-apgo
+    environment:
+      - GO_ENV=master-slave
+      - TZ=Asia/Taipei
+    ports:
+      - "8001:8080"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+    networks:
+      - redis-network
+
+  redis-master:
+    image: redis:6.2.19
+    container_name: redis-master
+    command: redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    volumes:
+      - ./data/redis-master/data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - redis-network
+
+  redis-slave1:
+    image: redis:6.2.19
+    container_name: redis-slave1
+    command: redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+      - redis-master
+    volumes:
+      - ./data/redis-slave1/data:/data
+    ports:
+      - "6380:6379"
+    networks:
+      - redis-network
+
+  redis-slave2:
+    image: redis:6.2.19
+    container_name: redis-slave2
+    command: redis-server --replicaof redis-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+      - redis-master
+      - redis-slave1
+    volumes:
+      - ./data/redis-slave2/data:/data
+    ports:
+      - "6381:6379"
+    networks:
+      - redis-network
+
+networks:
+  redis-network:
+    driver: bridge

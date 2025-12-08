@@ -1,0 +1,39 @@
+# APGo 主設定檔（開發環境）
+server:
+  port: 8080
+  mode: debug  # debug, release, test
+
+redis:
+  mode: RedisMasterSlaves  # RedisMasterSlaves, RedisSentinel, RedisCluster, RedisRaft
+
+  master_slave:
+    description: "簡單備援"
+    master: "192.168.1.91:6379"
+    slaves:
+      - "192.168.1.91:6380"
+      - "192.168.1.91:6381"
+
+  sentinel:
+    description: "哨兵"
+    master_name: "mymaster"
+    sentinels:
+      - "192.168.1.91:26379"
+      - "192.168.1.91:26380"
+      - "192.168.1.91:26381"
+
+  cluster:
+    description: "叢集模式"
+    nodes:
+      - "192.168.1.91:7000"
+      - "192.168.1.91:7001"
+      - "192.168.1.91:7002"
+      - "192.168.1.91:7003"
+      - "192.168.1.91:7004"
+      - "192.168.1.91:7005"
+
+  raft:
+    description: "不是官方 Redis 預設功能，你必須有安裝帶 Raft module 的 Redis 實例"
+    nodes:
+      - "192.168.1.91:6390"
+      - "192.168.1.91:6391"
+      - "192.168.1.91:6392"
