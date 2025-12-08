@@ -23,6 +23,23 @@
   - `internal/config/` - 設定檔處理
   - `pkg/redislib/` - Redis 介面定義（可重用的套件）
 
+1. cd APGo && go mod init
+2. cd APGo && mkdir -p cmd internal/redis internal/controller internal/config pkg/redislib
+
+目前專案結構：
+APGo/
+├── cmd/              (主程式入口)
+├── internal/
+│   ├── config/       (設定檔處理)
+│   ├── controller/   (API 控制器)
+│   └── redis/        (Redis 連線實作)
+├── pkg/
+│   └── redislib/     (Redis 介面定義)
+├── go.mod
+├── .gitignore
+└── README.md
+現在可以繼續執行步驟二：建立 Gin 基礎 API 框架。要繼續嗎？
+
 ### 步驟 2: 建立 Gin 基礎 API 框架
 
 - 在 `cmd/main.go` 建立主程式
