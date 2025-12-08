@@ -38,17 +38,20 @@ APGo/
 ├── go.mod
 ├── .gitignore
 └── README.md
-現在可以繼續執行步驟二：建立 Gin 基礎 API 框架。要繼續嗎？
 
 ### 步驟 2: 建立 Gin 基礎 API 框架
 
 - 在 `cmd/main.go` 建立主程式
 - 初始化 Gin 引擎
+  - 安裝: cd APGo && go get -u github.com/gin-gonic/gin
+  - 測試: cd APGo && go build -o bin/apgo ./cmd/main.go
 - 設定基本路由
 - 實作健康檢查端點 (health check)
+- Makefile 來簡化後續的建置和執行
 
 ### 步驟 3: 實作 redislib 介面定義
 
+- 參考 [AP](../AP) 資料夾的 .NET Core 實作，建立一個 Go 版本的 Redis 操作 API，支援以下 Redis 模式
 - 定義 `IRedisConn` 介面，對應 C# 的 `IRedisConn`
   - `ReadAsync(key string) (string, error)`
   - `WriteAsync(key, value string) (bool, error)`
