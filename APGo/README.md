@@ -175,6 +175,74 @@ APGo/
   - 測試需確認 Cluster 狀態正常（`CLUSTER INFO`）
   - 注意 hash slot 分配和資料路由
 
+#### 完成內容：
+
+##### 1. ✅ 建立 [redis_cluster.go](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/APGo/internal/redis/redis_cluster.go)
+
+**實作功能**：
+
+- 使用 `goredis.NewClusterClient` 實作 Cluster 模式
+- 實作完整的 `IRedisConn` 介面
+- 特殊方法：
+  - `FillCluster(count int)` - 填充測試資料，測試 hash slot 分配
+  - `GetClusterInfo()` - 取得 Cluster 狀態資訊
+  - `GetClusterNodes()` - 取得 Cluster 節點資訊
+
+- Cluster 自動處理 hash slot 路由
+
+##### 2. ✅ 建立 [redis_cluster_test.go](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/APGo/internal/redis/redis_cluster_test.go)
+
+**測試內容**：
+- 介面實作驗證測試 (`TestRedisClusterImplementsInterface`)
+- 完整整合測試 (
+  ```
+  TestRedisCluster
+  ```
+  )，包含：
+  - Cluster 資訊查詢
+  - 讀寫測試
+  - FillCluster 測試（填充 10 筆資料）
+  - 驗證填充資料的正確性
+  - 端點資訊測試
+- 參數驗證測試 (`TestNewRedisCluster_InvalidParams`)
+- 使用 `t.Skip()` 預設跳過整合測試
+
+##### 3. ✅ 建立 [docker-compose-ap-go.yml](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/redis-cluster/docker-compose-ap-go.yml)
+
+**Docker Compose 設定**：
+
+- 使用 `GO_ENV=cluster` 環境變數
+- 6 個 Redis 節點（3 Master + 3 Replica）
+- 節點容器名稱：redis-node1 ~ redis-node6
+- 使用 healthcheck 確保節點就緒
+- creator 服務：自動初始化 Cluster
+  - 等待所有節點健康檢查通過
+  - 執行 `redis-cli --cluster create` 建立 Cluster
+  - 使用 `--cluster-replicas 1`（每個 Master 有 1 個 Replica）
+- 網路設定：redis-network
+
+##### 4. ⚠️ 配置檔案注意
+
+- config.cluster.yaml 的節點名稱需要更新：
+  - 目前：`redis-node1:6379` ~ `redis-node6:6379` ✅ 正確
+  - 對應 docker-compose 的容器名稱
+
+##### 設計重點：
+
+1. **Hash Slot 自動路由**：go-redis 的 ClusterClient 自動處理 hash slot 計算和路由
+2. **Cluster 初始化**：使用 creator 服務自動執行 cluster create
+3. **健康檢查**：確保所有節點就緒後才建立 Cluster
+4. **測試資料填充**：`FillCluster` 方法可測試資料分散到不同 hash slot
+
+**執行測試**：
+
+```bash
+cd APGo
+go test ./internal/redis/... -v
+```
+
+**整合測試**參考 [CONFIG.md Cluster 測試步驟](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/APGo/CONFIG.md#3-cluster-模式整合測試（待實作）)
+
 ### 步驟 7: 實作 RedisRaft 連線
 
 - 建立 `RedisRaft` 結構，實作 `IRedisConn` 介面

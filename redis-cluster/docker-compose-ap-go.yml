@@ -1,0 +1,173 @@
+services:
+  redis-cluster-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-cluster-ap1
+    environment:
+      - ASPNETCORE_ENVIRONMENT=RedisCluster
+      - ASPNETCORE_HTTP_PORTS=80
+      - TZ=Asia/Taipei
+    ports:
+      - "8000:80"
+    depends_on:
+      creator:
+        condition: service_completed_successfully
+    networks:
+      - redis-network
+
+  redis-cluster-apgo:
+    build:
+      context: ../
+      dockerfile: APGo/Dockerfile
+    container_name: redis-cluster-apgo
+    environment:
+      - GO_ENV=cluster
+      - TZ=Asia/Taipei
+    ports:
+      - "8001:8080"
+    depends_on:
+      creator:
+        condition: service_completed_successfully
+    networks:
+      - redis-network
+
+  redis-node1:
+    image: redis:6.2.19
+    container_name: redis-node1
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node1:/data
+    ports:
+      - "7001:6379"
+      - "17001:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  redis-node2:
+    image: redis:6.2.19
+    container_name: redis-node2
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node2:/data
+    ports:
+      - "7002:6379"
+      - "17002:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  redis-node3:
+    image: redis:6.2.19
+    container_name: redis-node3
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node3:/data
+    ports:
+      - "7003:6379"
+      - "17003:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  redis-node4:
+    image: redis:6.2.19
+    container_name: redis-node4
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node4:/data
+    ports:
+      - "7004:6379"
+      - "17004:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  redis-node5:
+    image: redis:6.2.19
+    container_name: redis-node5
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node5:/data
+    ports:
+      - "7005:6379"
+      - "17005:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  redis-node6:
+    image: redis:6.2.19
+    container_name: redis-node6
+    command: redis-server --port 6379 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 10000 --appendonly yes
+    volumes:
+      - ./data/node6:/data
+    ports:
+      - "7006:6379"
+      - "17006:16379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "cluster", "info"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    networks:
+      - redis-network
+
+  creator:
+    image: redis:6.2.19
+    container_name: cluster-creator
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        echo "Waiting for nodes to be ready..."
+        sleep 5
+        echo "yes" | redis-cli --cluster create \
+          redis-node1:6379 \
+          redis-node2:6379 \
+          redis-node3:6379 \
+          redis-node4:6379 \
+          redis-node5:6379 \
+          redis-node6:6379 \
+          --cluster-replicas 1
+        echo "Cluster created successfully!"
+    depends_on:
+      redis-node1:
+        condition: service_healthy
+      redis-node2:
+        condition: service_healthy
+      redis-node3:
+        condition: service_healthy
+      redis-node4:
+        condition: service_healthy
+      redis-node5:
+        condition: service_healthy
+      redis-node6:
+        condition: service_healthy
+    networks:
+      - redis-network
+
+networks:
+  redis-network:
+    driver: bridge
