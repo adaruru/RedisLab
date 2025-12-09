@@ -66,6 +66,14 @@ APGo/
 - 使用 `go-redis/redis` 套件
 - 實作讀寫分離邏輯（Master 寫入，Slave 讀取）
 - 處理連線和錯誤
+- 建立 `redis_master_slave_test.go` 測試檔案
+  - 介面實作驗證測試 (`TestRedisMasterSlaveImplementsInterface`)
+  - 完整整合測試 (`TestRedisMasterSlave`)，使用 `t.Skip()` 跳過
+  - 參數驗證測試 (`TestNewRedisMasterSlave_InvalidParams`)
+- **測試注意事項**：
+  - 整合測試需要實際 Redis 環境，使用 `t.Skip()` 預設跳過
+  - 參數驗證測試不需要 Redis，可直接執行
+  - 執行整合測試時需手動註解掉 `t.Skip()`，參考 [CONFIG.md 整合測試步驟](CONFIG.md#整合測試)
 
 #### 步驟 4.1 確認不同環境如何設定練線設定
 - 參考 AP\appsettings.json 設定 "Redis": 且在 program 讀取設定，compose 階段指定環境變數
@@ -114,11 +122,19 @@ APGo/
 ### 步驟 5: 實作 RedisSentinel 連線
 
 - 建立 `RedisSentinel` 結構，實作 `IRedisConn` 介面
-  - 使用 Sentinel 模式連線
+  - 使用 Sentinel 模式連線 (`goredis.NewFailoverClient`)
   - 實作自動故障轉移支援
   - 取得 Master/Slave 端點資訊
   - 參考 redis-sentinel\docker-compose.yml
   - 編輯 redis-sentinel\docker-compose-ap-go.yml 新增啟動 compose
+- 建立 `redis_sentinel_test.go` 測試檔案
+  - 介面實作驗證測試 (`TestRedisSentinelImplementsInterface`)
+  - 完整整合測試 (`TestRedisSentinel`)，使用 `t.Skip()` 跳過
+  - 參數驗證測試 (`TestNewRedisSentinel_InvalidParams`)
+- **測試注意事項**：
+  - 整合測試需要 Sentinel 環境，使用 `t.Skip()` 預設跳過
+  - Sentinel 需要較長啟動時間（約 20 秒）
+  - 執行整合測試參考 [CONFIG.md Sentinel 測試步驟](CONFIG.md#2-sentinel-模式整合測試)
 
 步驟 5 完成內容：
 
@@ -145,17 +161,36 @@ APGo/
 ### 步驟 6: 實作 RedisCluster 連線
 
 - 建立 `RedisCluster` 結構，實作 `IRedisConn` 介面
-- 使用 Redis Cluster 模式
+- 使用 Redis Cluster 模式 (`goredis.NewClusterClient`)
 - 實作 `FillCluster()` 方法填充測試資料
-- 處理叢集節點路由
+- 處理叢集節點路由和 hash slot
 - 參考 redis-cluster\docker-compose.yml
 - 編輯 redis-cluster\docker-compose-ap-go.yml 新增啟動 compose
+- 建立 `redis_cluster_test.go` 測試檔案
+  - 介面實作驗證測試 (`TestRedisClusterImplementsInterface`)
+  - 完整整合測試 (`TestRedisCluster`)，使用 `t.Skip()` 跳過
+  - 參數驗證測試 (`TestNewRedisCluster_InvalidParams`)
+- **測試注意事項**：
+  - Cluster 模式需要初始化（`redis-cli --cluster create`）
+  - 測試需確認 Cluster 狀態正常（`CLUSTER INFO`）
+  - 注意 hash slot 分配和資料路由
 
 ### 步驟 7: 實作 RedisRaft 連線
 
 - 建立 `RedisRaft` 結構，實作 `IRedisConn` 介面
 - 使用 Redis Raft 模式連線
-- 實作一致性讀寫
+- 實作一致性讀寫（Strong Consistency）
+- 處理 Leader 選舉和節點同步
+- 參考 redis-raft\docker-compose.yml
+- 編輯 redis-raft\docker-compose-ap-go.yml 新增啟動 compose
+- 建立 `redis_raft_test.go` 測試檔案
+  - 介面實作驗證測試 (`TestRedisRaftImplementsInterface`)
+  - 完整整合測試 (`TestRedisRaft`)，使用 `t.Skip()` 跳過
+  - 參數驗證測試 (`TestNewRedisRaft_InvalidParams`)
+- **測試注意事項**：
+  - Raft 模式需要 RedisRaft 模組支援
+  - 測試需確認 Leader 選舉完成
+  - 注意一致性保證和寫入延遲
 
 ### 步驟 8: 建立 DI 容器和設定載入
 
