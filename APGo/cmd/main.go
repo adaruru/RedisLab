@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/AmandaChou/RedisLab/APGo/internal/config"
+	"github.com/AmandaChou/RedisLab/APGo/internal/controller"
 	"github.com/AmandaChou/RedisLab/APGo/pkg/redislib"
 	"github.com/gin-gonic/gin"
 )
@@ -35,7 +36,7 @@ func main() {
 	router := gin.Default()
 
 	// 設定基本路由
-	setupRoutes(router)
+	setupRoutes(router, redisConn)
 
 	// 啟動服務器
 	log.Printf("Starting server on %s with Redis mode: %s",
@@ -46,28 +47,27 @@ func main() {
 }
 
 // setupRoutes 設定所有路由
-func setupRoutes(router *gin.Engine) {
+func setupRoutes(router *gin.Engine, redisConn redislib.IRedisConn) {
+	// 建立 CacheController
+	cacheController := controller.NewCacheController(redisConn)
+
 	// 健康檢查端點
 	router.GET("/health", healthCheck)
 
-	// API 路由群組
-	api := router.Group("/api")
-	{
-		// 預留給 cache controller 的路由
-		api.GET("/cache", func(c *gin.Context) {
-			c.JSON(http.StatusNotImplemented, gin.H{
-				"message": "Cache endpoints not yet implemented",
-			})
-		})
-	}
+	// Cache API 路由
+	router.GET("/cache", cacheController.GetCache)
+	router.POST("/cache", cacheController.UpdateCache)
+	router.GET("/fillcluster", cacheController.FillCluster)
 }
 
 // healthCheck 健康檢查處理器
 func healthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status":     "healthy",
-		"service":    "APGo Redis API",
-		"version":    "1.0.0",
-		"redis_mode": redisConn.GetMasterEndpoint(),
+		"status":          "healthy",
+		"service":         "APGo Redis API",
+		"version":         "1.0.0",
+		"redis_mode":      "connected",
+		"master_endpoint": redisConn.GetMasterEndpoint(),
+		"slave_endpoint":  redisConn.GetSlaveEndpoint(),
 	})
 }

@@ -1,0 +1,148 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build APGo",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-o",
+                "bin/apgo.exe",
+                "cmd/main.go"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Run APGo (Master-Slave)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "run",
+                "cmd/main.go"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo",
+                "env": {
+                    "GO_ENV": "master-slave"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Run APGo (Sentinel)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "run",
+                "cmd/main.go"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo",
+                "env": {
+                    "GO_ENV": "sentinel"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Run APGo (Cluster)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "run",
+                "cmd/main.go"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo",
+                "env": {
+                    "GO_ENV": "cluster"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Run APGo (Raft)",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "run",
+                "cmd/main.go"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo",
+                "env": {
+                    "GO_ENV": "raft"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Test All",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "./...",
+                "-v"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo"
+            },
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        },
+        {
+            "label": "Test Controller",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "./internal/controller/...",
+                "-v"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/APGo"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": ["$go"]
+        }
+    ]
+}

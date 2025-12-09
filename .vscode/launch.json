@@ -1,0 +1,60 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch APGo (Master-Slave)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/APGo/cmd/main.go",
+            "env": {
+                "GO_ENV": "master-slave"
+            },
+            "args": [],
+            "showLog": true
+        },
+        {
+            "name": "Launch APGo (Sentinel)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/APGo/cmd/main.go",
+            "env": {
+                "GO_ENV": "sentinel"
+            },
+            "args": [],
+            "showLog": true
+        },
+        {
+            "name": "Launch APGo (Cluster)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/APGo/cmd/main.go",
+            "env": {
+                "GO_ENV": "cluster"
+            },
+            "args": [],
+            "showLog": true
+        },
+        {
+            "name": "Launch APGo (Raft)",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/APGo/cmd/main.go",
+            "env": {
+                "GO_ENV": "raft"
+            },
+            "args": [],
+            "showLog": true
+        },
+        {
+            "name": "Attach to Process",
+            "type": "go",
+            "request": "attach",
+            "mode": "local",
+            "processId": 0
+        }
+    ]
+}

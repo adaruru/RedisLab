@@ -521,7 +521,85 @@ cd APGo && go test ./internal/config/... -v
   - `POST /cache` - 更新快取（Request Body: `{key, value}`）
   - `GET /fillcluster` - 填充 Cluster 測試資料
 - 返回對應的 Master/Slave 端點資訊
-- 編輯 .vscode\launch.json 或是 .vscode\task ，讓 api 執行可以逐步偵錯 
+- 編輯 .vscode\launch.json 或是 .vscode\task ，讓 api 執行可以逐步偵錯
+
+### 步驟 10: 實作 CacheController API 端點 ✅
+
+實作完整的 REST API 端點，提供 Redis 快取操作介面。
+
+#### 完成內容
+
+##### 1. ✅ 建立 `internal/controller/cache_controller.go`
+
+實作三個核心端點：
+
+**API 端點**：
+
+1. **GET /cache?key={key}** - 讀取快取
+   - 從 Slave/Replica 讀取資料（讀寫分離）
+   - 返回值、讀取來源端點資訊
+   - 處理 key 不存在的情況
+
+2. **POST /cache** - 更新快取
+   - 寫入資料到 Master
+   - Request Body: `{"key": "xxx", "value": "yyy"}`
+   - 返回寫入狀態、寫入目標端點資訊
+
+3. **GET /fillcluster** - 填充 Cluster 測試資料
+   - 僅支援 RedisCluster 模式
+   - 批次填充 100 筆測試資料
+   - 用於測試 hash slot 分配
+
+##### 2. ✅ 更新 `cmd/main.go`
+
+整合 CacheController 到路由。
+
+##### 3. ✅ 建立 `internal/controller/cache_controller_test.go`
+
+完整的單元測試：
+- ✅ `TestGetCache_Success` - 成功讀取測試
+- ✅ `TestGetCache_KeyNotFound` - Key 不存在測試
+- ✅ `TestGetCache_MissingKey` - 缺少 key 參數測試
+- ✅ `TestUpdateCache_Success` - 成功寫入測試
+- ✅ `TestUpdateCache_InvalidRequest` - 無效請求測試
+
+##### 4. ✅ 建立 VS Code 偵錯配置
+
+**`.vscode/launch.json`** - 6 個偵錯配置：
+- Launch APGo (預設/Master-Slave/Sentinel/Cluster/Raft)
+- Attach to Process
+
+**`.vscode/tasks.json`** - 8 個建置任務：
+- Build/Run/Test 各種模式
+
+#### 使用方式
+
+```bash
+# 按 F5 開始偵錯
+# 或使用終端機
+cd APGo && GO_ENV=master-slave go run cmd/main.go
+
+# API 測試
+curl -X POST http://localhost:8080/cache \
+  -H "Content-Type: application/json" \
+  -d '{"key":"test","value":"hello"}'
+
+curl http://localhost:8080/cache?key=test
+```
+
+#### 修改檔案清單
+
+| 檔案 | 動作 | 說明 |
+|------|------|------|
+| `internal/controller/cache_controller.go` | ✅ 已建立 | CacheController 實作 |
+| `internal/controller/cache_controller_test.go` | ✅ 已建立 | 5 個測試案例通過 |
+| `cmd/main.go` | ✅ 已更新 | 整合路由 |
+| `.vscode/launch.json` | ✅ 已建立 | 偵錯配置 |
+| `.vscode/tasks.json` | ✅ 已建立 | 建置任務 |
+
+### 步驟 10.1 檢查 package 引用
+  - 我的真實路徑 https://github.com/adaruru/RedisLab/tree/main/APGo/internal
+  - 
 
 ### 步驟 11: 建立設定檔範例
 
