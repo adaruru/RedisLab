@@ -601,16 +601,112 @@ curl http://localhost:8080/cache?key=test
   - 我的真實路徑 https://github.com/adaruru/RedisLab/tree/main/APGo/internal
   - 
 
-### 步驟 11: 建立設定檔範例
+### 步驟 11: 建立設定檔範例 ✅
 
-- 建立 `config.yaml`
-- 提供各種 Redis 模式的設定範例：
-  - Master-Slave 設定
-  - Sentinel 設定
-  - Cluster 設定
-  - Raft 設定
+已建立完整的配置檔案系統，支援多環境部署。
 
-應該是以經設定好了，檢查有沒有要更正的內容
+✅ 5 個配置檔案全部正確
+✅ YAML 格式符合 Go 慣例
+✅ 結構完整（server + redis）
+✅ 環境切換機制正確（GO_ENV）
+✅ Docker 容器名稱正確
+✅ 本機開發配置完整
+
+#### 配置檔案清單
+
+
+| 檔案 | 用途 | GO_ENV | Redis Mode | 狀態 |
+|------|------|--------|-----------|------|
+| `config.yaml` | 開發環境（本機 IP） | - | RedisMasterSlaves | ✅ 完成 |
+| `config.master-slave.yaml` | Docker 主從模式 | master-slave | RedisMasterSlaves | ✅ 完成 |
+| `config.sentinel.yaml` | Docker 哨兵模式 | sentinel | RedisSentinel | ✅ 完成 |
+| `config.cluster.yaml` | Docker 叢集模式 | cluster | RedisCluster | ✅ 完成 |
+| `config.raft.yaml` | Docker Raft 模式 | raft | RedisRaft | ✅ 完成 |
+
+#### 使用範例
+
+**開發環境**（使用 config.yaml）：
+```bash
+go run cmd/main.go
+```
+
+**Docker Master-Slave 環境**：
+```bash
+GO_ENV=master-slave go run cmd/main.go
+```
+
+**Docker Sentinel 環境**：
+```bash
+GO_ENV=sentinel go run cmd/main.go
+```
+
+**Docker Cluster 環境**：
+```bash
+GO_ENV=cluster go run cmd/main.go
+```
+
+**Docker Raft 環境**：
+```bash
+GO_ENV=raft go run cmd/main.go
+```
+
+#### 配置載入邏輯
+
+1. 先載入 `config.yaml`（基礎配置）
+2. 根據 `GO_ENV` 合併對應的環境配置檔案
+3. 環境變數可覆蓋配置值（例如 `APGO_REDIS_MODE`）
+
+**範例**：
+```bash
+GO_ENV=cluster go run cmd/main.go
+# 載入順序：config.yaml → config.cluster.yaml（合併）
+```
+
+#### 配置檔案結構
+
+所有配置檔案都遵循相同結構：
+
+```yaml
+server:
+  port: 8080
+  mode: debug  # debug, release, test
+
+redis:
+  mode: RedisMasterSlaves  # 或 RedisSentinel, RedisCluster, RedisRaft
+  
+  master_slave:
+    description: "說明"
+    master: "host:port"
+    slaves:
+      - "host:port"
+  
+  sentinel:
+    description: "說明"
+    master_name: "mymaster"
+    sentinels:
+      - "host:port"
+  
+  cluster:
+    description: "說明"
+    nodes:
+      - "host:port"
+  
+  raft:
+    description: "說明"
+    nodes:
+      - "host:port"
+```
+
+#### 驗證配置
+
+```bash
+# 檢查配置載入
+cd APGo
+go run cmd/main.go
+
+# 應該看到：
+# Starting server on :8080 with Redis mode: RedisMasterSlaves
+```
 
 ### 步驟 12: 測試和文件
 
