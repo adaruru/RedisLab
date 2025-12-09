@@ -1,0 +1,127 @@
+services:
+  redis-sentinel-ap1:
+    build:
+      context: ../
+      dockerfile: AP/Dockerfile
+    container_name: redis-sentinel-ap1
+    environment:
+      - ASPNETCORE_ENVIRONMENT=RedisSentinel
+      - ASPNETCORE_HTTP_PORTS=80
+      - TZ=Asia/Taipei
+    ports:
+      - "8000:80"
+    depends_on:
+      - sentinel1
+      - sentinel2
+      - sentinel3
+    networks:
+      - redis-network
+
+  redis-sentinel-apgo:
+    build:
+      context: ../
+      dockerfile: APGo/Dockerfile
+    container_name: redis-sentinel-apgo
+    environment:
+      - GO_ENV=sentinel
+      - TZ=Asia/Taipei
+    ports:
+      - "8001:8080"
+    depends_on:
+      - sentinel1
+      - sentinel2
+      - sentinel3
+    networks:
+      - redis-network
+
+  master:
+    image: redis:6.2.19
+    container_name: sentinel-master
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    volumes:
+      - ./data/redis-master/data:/data
+    ports:
+      - "6382:6379"
+    networks:
+      - redis-network
+
+  slave1:
+    image: redis:6.2.19
+    container_name: sentinel-slave1
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server --replicaof sentinel-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+      - master
+    volumes:
+      - ./data/redis-slave1/data:/data
+    ports:
+      - "6383:6379"
+    networks:
+      - redis-network
+
+  slave2:
+    image: redis:6.2.19
+    container_name: sentinel-slave2
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server --replicaof sentinel-master 6379 --repl-diskless-sync yes --repl-diskless-load on-empty-db
+    depends_on:
+      - master
+    volumes:
+      - ./data/redis-slave2/data:/data
+    ports:
+      - "6384:6379"
+    networks:
+      - redis-network
+
+  sentinel1:
+    image: redis:6.2.19
+    container_name: sentinel1
+    ports:
+      - "26379:26379"
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server /data/sentinel.conf --sentinel
+    volumes:
+      - ./sentinel1:/data
+    depends_on:
+      - slave2
+    networks:
+      - redis-network
+
+  sentinel2:
+    image: redis:6.2.19
+    container_name: sentinel2
+    ports:
+      - "26380:26379"
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server /data/sentinel.conf --sentinel
+    volumes:
+      - ./sentinel2:/data
+    depends_on:
+      - slave2
+    networks:
+      - redis-network
+
+  sentinel3:
+    image: redis:6.2.19
+    container_name: sentinel3
+    ports:
+      - "26381:26379"
+    environment:
+      - TZ=Asia/Taipei
+    command: redis-server /data/sentinel.conf --sentinel
+    volumes:
+      - ./sentinel3:/data
+    depends_on:
+      - slave2
+    networks:
+      - redis-network
+
+networks:
+  redis-network:
+    driver: bridge

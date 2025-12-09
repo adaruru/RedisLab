@@ -78,7 +78,7 @@ APGo/
   - AP\appsettings.RedisMasterSlaves.json
   - 這是 .Net core convention，我確認了 config 來自 Viper 套件
   - 請修改成 Golang 最佳實作，或是 Viper 最佳實作
- 
+
   1. 設定檔改為 Go/Viper 的最佳實作方式。Go 社群通常使用 YAML 格式，檔名使用 config.yaml 而非 appsettings.json。
   2. snake_case 命名
   3. 標準環境變數 GO_ENV 是 Go 社群標準
@@ -119,6 +119,28 @@ APGo/
   - 取得 Master/Slave 端點資訊
   - 參考 redis-sentinel\docker-compose.yml
   - 編輯 redis-sentinel\docker-compose-ap-go.yml 新增啟動 compose
+
+步驟 5 完成內容：
+
+1. ✅ 建立 [redis_sentinel.go](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/APGo/internal/redis/redis_sentinel.go) - 實作 `RedisSentinel` 結構
+   - 使用 `goredis.NewFailoverClient` 實作 Sentinel 模式
+   - 自動故障轉移支援（Failover）
+   - 透過 Sentinel 查詢 Master/Slave 端點資訊
+   - 實作完整的 `IRedisConn` 介面
+2. ✅ 建立 [redis_sentinel_test.go](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/APGo/internal/redis/redis_sentinel_test.go) - 單元測試
+   - 測試連線、讀寫、端點資訊
+   - 參數驗證測試
+3. ✅ 建立 [docker-compose-ap-go.yml](vscode-webview://0nlu7ssdt85f5uhh8ljum9dikvvs8gsel4mc6uulua9pmps9lc22/redis-sentinel/docker-compose-ap-go.yml) - Docker Compose 設定
+   - 使用 `GO_ENV=sentinel` 環境變數
+   - 整合 3 個 Sentinel 節點
+   - 整合 Master-Slave 架構
+   - 網路設定完整
+
+設計重點：
+
+- 使用 `NewFailoverClient` 讓 go-redis 自動處理故障轉移
+- 透過 Sentinel 客戶端查詢當前的 Master/Slave 位址
+- 符合步驟 4.3 的設計理念：`GO_ENV=sentinel` 直接識別 Sentinel 模式
 
 ### 步驟 6: 實作 RedisCluster 連線
 

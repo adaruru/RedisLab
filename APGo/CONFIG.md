@@ -25,6 +25,8 @@
 
 ## 環境變數
 
+每個 docker-compose 只測試一種架構，Redis 架構不會在運行時切換，識別度比靈活性更重要。
+
 ### GO_ENV（環境識別）
 
 直接對應 Redis 架構模式：
@@ -42,29 +44,6 @@ GO_ENV=cluster
 # Raft 模式
 GO_ENV=raft
 ```
-
-### 為什麼不使用 APGO_REDIS_MODE 覆蓋？
-
-❌ **不實用的做法**（理論上正確，實際上不需要）：
-```yaml
-# config.docker.yaml
-environment:
-  - GO_ENV=docker
-  - APGO_REDIS_MODE=RedisMasterSlaves  # 需要看兩個地方
-```
-
-✅ **實用的做法**（專案目的明確）：
-```yaml
-# docker-compose-ap-go.yml
-environment:
-  - GO_ENV=master-slave  # 一看就懂
-```
-
-理由：
-1. 這是 POC 專案，不是生產環境
-2. 每個 docker-compose 只測試一種架構
-3. Redis 架構不會在運行時切換
-4. 識別度比靈活性更重要
 
 ## Docker Compose 使用範例
 
@@ -195,6 +174,209 @@ GO_ENV=master-slave go run ./cmd/main.go
 - `master_slave` ✅（不是 masterSlave 或 MasterSlave）
 - `master_name` ✅
 - `sentinels` ✅
+
+## 整合測試
+
+### 測試策略
+
+專案採用兩種測試方式：
+
+1. **單元測試**：不需要 Redis 環境，測試參數驗證和介面實作
+2. **整合測試**：需要實際 Redis 環境，測試完整的讀寫功能
+
+### 單元測試（快速驗證）
+
+```bash
+cd APGo
+
+# 執行所有測試
+go test ./... -v
+
+# 只測試 Redis 相關
+go test ./internal/redis/... -v
+```
+
+**結果**：
+- ✅ 參數驗證測試會執行
+- ⏭️ 整合測試會被跳過（`t.Skip()`）
+
+### 整合測試步驟
+
+#### 1. Master-Slave 模式整合測試
+
+```bash
+# Step 1: 啟動 Master-Slave 環境
+cd redis-master-slave
+docker-compose -f docker-compose-ap-go.yml up -d
+
+# Step 2: 等待服務完全啟動
+sleep 15
+
+# Step 3: 檢查服務狀態
+docker-compose -f docker-compose-ap-go.yml ps
+
+# Step 4: 驗證 Redis 連線
+docker exec redis-master redis-cli ping
+docker exec redis-slave1 redis-cli ping
+
+# Step 5: 修改測試檔案（暫時移除 Skip）
+# 編輯 APGo/internal/redis/redis_master_slave_test.go
+# 在測試中註解掉 t.Skip() 行（如果有）
+
+# Step 6: 執行整合測試
+cd ../APGo
+go test ./internal/redis/... -v -run TestRedisMasterSlave
+
+# Step 7: 測試完成後還原
+# 將 t.Skip() 註解還原
+
+# Step 8: 停止環境
+cd ../redis-master-slave
+docker-compose -f docker-compose-ap-go.yml down
+```
+
+#### 2. Sentinel 模式整合測試
+
+```bash
+# Step 1: 啟動 Sentinel 環境
+cd redis-sentinel
+docker-compose -f docker-compose-ap-go.yml up -d
+
+# Step 2: 等待服務完全啟動
+sleep 20
+
+# Step 3: 檢查 Sentinel 狀態
+docker exec sentinel1 redis-cli -p 26379 SENTINEL masters
+docker exec sentinel1 redis-cli -p 26379 SENTINEL slaves mymaster
+
+# Step 4: 驗證 Master 連線
+docker exec sentinel-master redis-cli ping
+
+# Step 5: 修改測試檔案
+# 編輯 APGo/internal/redis/redis_sentinel_test.go
+# 註解掉第 11 行：
+#   // t.Skip("需要實際的 Sentinel 環境才能執行")
+
+# Step 6: 執行整合測試
+cd ../APGo
+go test ./internal/redis/... -v -run TestRedisSentinel
+
+# Step 7: 測試完成後還原
+# 將第 11 行的註解還原：
+#   t.Skip("需要實際的 Sentinel 環境才能執行")
+
+# Step 8: 停止環境
+cd ../redis-sentinel
+docker-compose -f docker-compose-ap-go.yml down
+```
+
+#### 3. Cluster 模式整合測試（待實作）
+
+```bash
+# Step 1: 啟動 Cluster 環境
+cd redis-cluster
+docker-compose -f docker-compose-ap-go.yml up -d
+
+# Step 2: 等待並初始化 Cluster
+sleep 15
+# ... 執行 cluster create 命令
+
+# Step 3: 執行測試
+cd ../APGo
+go test ./internal/redis/... -v -run TestRedisCluster
+
+# Step 4: 停止環境
+cd ../redis-cluster
+docker-compose -f docker-compose-ap-go.yml down
+```
+
+#### 4. Raft 模式整合測試（待實作）
+
+```bash
+# Step 1: 啟動 Raft 環境
+cd redis-raft
+docker-compose -f docker-compose-ap-go.yml up -d
+
+# Step 2: 執行測試
+cd ../APGo
+go test ./internal/redis/... -v -run TestRedisRaft
+
+# Step 3: 停止環境
+cd ../redis-raft
+docker-compose -f docker-compose-ap-go.yml down
+```
+
+### 測試腳本自動化（建議）
+
+可以建立測試腳本來自動化整合測試流程：
+
+**APGo/test-integration.sh**:
+```bash
+#!/bin/bash
+
+MODE=$1  # master-slave, sentinel, cluster, raft
+
+if [ -z "$MODE" ]; then
+  echo "Usage: ./test-integration.sh <mode>"
+  echo "  mode: master-slave, sentinel, cluster, raft"
+  exit 1
+fi
+
+echo "Starting integration test for $MODE mode..."
+
+# 啟動環境
+cd ../redis-$MODE
+docker-compose -f docker-compose-ap-go.yml up -d
+
+# 等待服務啟動
+echo "Waiting for services to start..."
+sleep 20
+
+# 執行測試
+cd ../APGo
+echo "Running tests..."
+
+case $MODE in
+  master-slave)
+    go test ./internal/redis/... -v -run TestRedisMasterSlave
+    ;;
+  sentinel)
+    go test ./internal/redis/... -v -run TestRedisSentinel
+    ;;
+  cluster)
+    go test ./internal/redis/... -v -run TestRedisCluster
+    ;;
+  raft)
+    go test ./internal/redis/... -v -run TestRedisRaft
+    ;;
+esac
+
+# 停止環境
+echo "Cleaning up..."
+cd ../redis-$MODE
+docker-compose -f docker-compose-ap-go.yml down
+
+echo "Integration test completed!"
+```
+
+使用方式：
+```bash
+cd APGo
+chmod +x test-integration.sh
+
+# 測試 Sentinel 模式
+./test-integration.sh sentinel
+```
+
+### 測試檔案說明
+
+測試檔案中使用 `t.Skip()` 的原因：
+
+1. **開發階段**：不需要每次都啟動 Docker 環境
+2. **CI/CD 整合**：單元測試可以快速執行，整合測試獨立執行
+3. **明確意圖**：清楚標示哪些測試需要外部依賴
+
+當需要執行整合測試時，手動註解掉 `t.Skip()` 即可。
 
 ## 總結
 
