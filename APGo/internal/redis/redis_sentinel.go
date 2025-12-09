@@ -70,15 +70,14 @@ func (r *RedisSentinel) updateEndpoints(ctx context.Context) error {
 		r.masterEndpoint = fmt.Sprintf("%s:%s", masterAddr[0], masterAddr[1])
 	}
 
-	// 取得 Slave 位址
-	slaves, err := sentinelClient.Sentinels(ctx, r.masterName).Result()
-	if err == nil && len(slaves) > 0 {
-		// 使用第一個 Slave
-		if slave, ok := slaves[0].(map[interface{}]interface{}); ok {
-			if ip, ok := slave["ip"].(string); ok {
-				if port, ok := slave["port"].(string); ok {
-					r.slaveEndpoint = fmt.Sprintf("%s:%s", ip, port)
-				}
+	// 取得 Slave（Replica）位址
+	replicas, err := sentinelClient.Replicas(ctx, r.masterName).Result()
+	if err == nil && len(replicas) > 0 {
+		// 使用第一個 Replica
+		replica := replicas[0]
+		if ip, ok := replica["ip"]; ok {
+			if port, ok := replica["port"]; ok {
+				r.slaveEndpoint = fmt.Sprintf("%s:%s", ip, port)
 			}
 		}
 	}

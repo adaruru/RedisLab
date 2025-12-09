@@ -354,7 +354,7 @@ docker exec redis-raft1 redis-cli RAFT.INFO
   - 測試需確認 Leader 選舉完成
   - 注意一致性保證和寫入延遲
 
-### 步驟 9: 建立 Smart Config 依賴組裝
+### 步驟 9: 建立 Smart Config 依賴組裝 ✅
 
 採用 **Smart Config 模式**：由 `Config` 結構自己負責「看 mode → 建立正確連線」，不需要額外的 DI 容器或工廠模式。
 
@@ -375,9 +375,9 @@ docker exec redis-raft1 redis-cli RAFT.INFO
 
 #### 實作項目
 
-##### 1. 修改 `internal/config/config.go`
+##### 1. ✅ 實作 `internal/config/config.go`
 
-新增 `ConnectRedis()` 方法：
+實作 `ConnectRedis()` 方法：
 
 ```go
 // ConnectRedis 根據設定建立對應的 Redis 連線
@@ -409,7 +409,13 @@ func (c *Config) ConnectRedis() (redislib.IRedisConn, error) {
 }
 ```
 
-##### 2. 修改 `cmd/main.go`
+**設計重點**：
+- 使用 switch 根據 mode 選擇對應實作
+- 每個 case 直接呼叫對應的建構函式
+- 參數驗證由各實作自行處理
+- 錯誤處理清晰明確
+
+##### 2. ✅ 整合 `cmd/main.go`
 
 整合設定載入和 Redis 連線：
 
@@ -428,29 +434,64 @@ func main() {
     }
     defer redisConn.Close()
 
-    // 初始化 Gin
+    // 設定 Gin 模式
+    if cfg.Server.Mode == "release" {
+        gin.SetMode(gin.ReleaseMode)
+    }
+
+    // 初始化 Gin 引擎
     router := gin.Default()
-    setupRoutes(router, redisConn)
+    setupRoutes(router)
 
     // 啟動服務器
     log.Printf("Starting server on %s with Redis mode: %s",
         cfg.GetServerAddr(), cfg.Redis.Mode)
-    router.Run(cfg.GetServerAddr())
+    if err := router.Run(cfg.GetServerAddr()); err != nil {
+        log.Fatalf("Failed to start server: %v", err)
+    }
 }
 ```
 
-##### 3. 新增 `internal/config/config_test.go` 測試
+##### 3. ✅ 完整測試 `internal/config/config_test.go`
 
-- 測試 `ConnectRedis()` 參數驗證（不需要實際 Redis）
-- 測試不支援的 mode 錯誤處理
+實作測試涵蓋：
+- ✅ `TestLoadConfig` - 設定載入測試
+- ✅ `TestLoadConfigWithEnv` - 環境變數覆蓋測試
+- ✅ `TestGetRedisMode` - Redis 模式解析測試（4 種模式 + 錯誤處理）
+- ✅ `TestConnectRedis_InvalidMode` - 不支援的 mode 測試
+- ✅ `TestConnectRedis_MasterSlaveEmptyMaster` - MasterSlave 參數驗證
+- ✅ `TestConnectRedis_SentinelEmptyMasterName` - Sentinel 參數驗證
+- ✅ `TestConnectRedis_ClusterEmptyNodes` - Cluster 參數驗證
+- ✅ `TestConnectRedis_RaftEmptyNodes` - Raft 參數驗證
+
+**測試結果**：
+```
+=== RUN   TestLoadConfig
+--- PASS: TestLoadConfig (0.00s)
+=== RUN   TestLoadConfigWithEnv
+--- PASS: TestLoadConfigWithEnv (0.00s)
+=== RUN   TestGetRedisMode
+--- PASS: TestGetRedisMode (0.00s)
+=== RUN   TestConnectRedis_InvalidMode
+--- PASS: TestConnectRedis_InvalidMode (0.00s)
+=== RUN   TestConnectRedis_MasterSlaveEmptyMaster
+--- PASS: TestConnectRedis_MasterSlaveEmptyMaster (0.00s)
+=== RUN   TestConnectRedis_SentinelEmptyMasterName
+--- PASS: TestConnectRedis_SentinelEmptyMasterName (0.00s)
+=== RUN   TestConnectRedis_ClusterEmptyNodes
+--- PASS: TestConnectRedis_ClusterEmptyNodes (0.00s)
+=== RUN   TestConnectRedis_RaftEmptyNodes
+--- PASS: TestConnectRedis_RaftEmptyNodes (0.00s)
+PASS
+```
 
 #### 修改檔案清單
 
 | 檔案 | 動作 | 說明 |
 |------|------|------|
-| `internal/config/config.go` | 修改 | 新增 `ConnectRedis()` 方法 |
-| `cmd/main.go` | 修改 | 整合設定載入和 Redis 連線 |
-| `internal/config/config_test.go` | 修改 | 新增 `ConnectRedis` 測試 |
+| `internal/config/config.go` | ✅ 已實作 | 新增 `ConnectRedis()` 方法 |
+| `cmd/main.go` | ✅ 已整合 | 整合設定載入和 Redis 連線 |
+| `internal/config/config_test.go` | ✅ 已完成 | 8 個測試案例全數通過 |
 
 #### 驗證方式
 
@@ -462,6 +503,16 @@ cd APGo && go build ./...
 cd APGo && go test ./internal/config/... -v
 ```
 
+#### 設計優勢
+
+相較於 C# 的反射式 DI 容器，Go 的 Smart Config 模式具有以下優勢：
+
+1. **明確性**：一眼就能看出如何建立連線，無隱式魔法
+2. **簡潔性**：不需要額外的工廠類別或 DI framework
+3. **效能**：編譯時期確定，無反射開銷
+4. **可測試性**：各模式參數驗證獨立測試
+5. **Go 慣例**：符合 Go 社群「明確大於隱式」的設計哲學
+
 ### 步驟 10: 實作 CacheController API 端點
 
 - 建立 `CacheController` 控制器
@@ -470,15 +521,18 @@ cd APGo && go test ./internal/config/... -v
   - `POST /cache` - 更新快取（Request Body: `{key, value}`）
   - `GET /fillcluster` - 填充 Cluster 測試資料
 - 返回對應的 Master/Slave 端點資訊
+- 編輯 .vscode\launch.json 或是 .vscode\task ，讓 api 執行可以逐步偵錯 
 
 ### 步驟 11: 建立設定檔範例
 
-- 建立 `config.json` 或 `config.yaml`
+- 建立 `config.yaml`
 - 提供各種 Redis 模式的設定範例：
   - Master-Slave 設定
   - Sentinel 設定
   - Cluster 設定
   - Raft 設定
+
+應該是以經設定好了，檢查有沒有要更正的內容
 
 ### 步驟 12: 測試和文件
 

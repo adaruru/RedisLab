@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/AmandaChou/RedisLab/APGo/internal/redis"
 	"github.com/AmandaChou/RedisLab/APGo/pkg/redislib"
 	"github.com/spf13/viper"
 )
@@ -145,4 +146,32 @@ func (c *Config) GetRedisMode() (redislib.RedisMode, error) {
 // GetServerAddr 取得服務器監聽位址
 func (c *Config) GetServerAddr() string {
 	return fmt.Sprintf(":%d", c.Server.Port)
+}
+
+// ConnectRedis 根據設定建立對應的 Redis 連線
+// 對應 C# 的 RedisDI.AddRedisService
+func (c *Config) ConnectRedis() (redislib.IRedisConn, error) {
+	mode, err := c.GetRedisMode()
+	if err != nil {
+		return nil, err
+	}
+
+	switch mode {
+	case redislib.RedisMasterSlaves:
+		return redis.NewRedisMasterSlave(
+			c.Redis.MasterSlave.Master,
+			c.Redis.MasterSlave.Slaves,
+		)
+	case redislib.RedisSentinel:
+		return redis.NewRedisSentinel(
+			c.Redis.Sentinel.MasterName,
+			c.Redis.Sentinel.Sentinels,
+		)
+	case redislib.RedisCluster:
+		return redis.NewRedisCluster(c.Redis.Cluster.Nodes)
+	case redislib.RedisRaft:
+		return redis.NewRedisRaft(c.Redis.Raft.Nodes)
+	default:
+		return nil, fmt.Errorf("unsupported redis mode: %s", mode)
+	}
 }
