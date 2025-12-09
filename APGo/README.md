@@ -354,13 +354,113 @@ docker exec redis-raft1 redis-cli RAFT.INFO
   - 測試需確認 Leader 選舉完成
   - 注意一致性保證和寫入延遲
 
-### 步驟 9: 建立 DI 容器和設定載入
+### 步驟 9: 建立 Smart Config 依賴組裝
 
-- 實作設定檔讀取（支援 JSON/YAML）
-- 建立依賴注入容器（可使用 `uber-go/dig` 或手動實作）
-- 根據設定檔的 `Redis:Mode` 自動註冊對應的 Redis 實作
-- 參考 C# 的 `RedisDI.AddRedisService` 方法
-- 不要完全照 net convention，要參考 go 的依賴注入最佳實作方式
+採用 **Smart Config 模式**：由 `Config` 結構自己負責「看 mode → 建立正確連線」，不需要額外的 DI 容器或工廠模式。
+
+#### 設計理念
+
+- **Go 慣例**：明確大於隱式，不使用反射式 DI framework
+- **職責歸屬**：`redis.mode` 的切換邏輯放在「最懂 Redis 設定的地方」— `Config`
+- **扁平架構**：不需要額外的工廠檔或容器，減少抽象層
+- **檢查循環引用**：config package 要 import internal/redis，確認一下沒有反向引用，config → redis → redislib  ✅ 單向，沒問題
+
+#### 與 C# 的對照
+
+| C# (RedisDI.cs) | Go (config.go) |
+|-----------------|----------------|
+| `services.AddRedisService(config)` | `cfg.ConnectRedis()` |
+| `IServiceCollection` 擴展方法 + switch | `Config` 方法 + switch |
+| 反射式 DI 容器 | 明確式建構 |
+
+#### 實作項目
+
+##### 1. 修改 `internal/config/config.go`
+
+新增 `ConnectRedis()` 方法：
+
+```go
+// ConnectRedis 根據設定建立對應的 Redis 連線
+// 對應 C# 的 RedisDI.AddRedisService
+func (c *Config) ConnectRedis() (redislib.IRedisConn, error) {
+    mode, err := c.GetRedisMode()
+    if err != nil {
+        return nil, err
+    }
+
+    switch mode {
+    case redislib.RedisMasterSlaves:
+        return redis.NewRedisMasterSlave(
+            c.Redis.MasterSlave.Master,
+            c.Redis.MasterSlave.Slaves,
+        )
+    case redislib.RedisSentinel:
+        return redis.NewRedisSentinel(
+            c.Redis.Sentinel.MasterName,
+            c.Redis.Sentinel.Sentinels,
+        )
+    case redislib.RedisCluster:
+        return redis.NewRedisCluster(c.Redis.Cluster.Nodes)
+    case redislib.RedisRaft:
+        return redis.NewRedisRaft(c.Redis.Raft.Nodes)
+    default:
+        return nil, fmt.Errorf("unsupported redis mode: %s", mode)
+    }
+}
+```
+
+##### 2. 修改 `cmd/main.go`
+
+整合設定載入和 Redis 連線：
+
+```go
+func main() {
+    // 載入設定
+    cfg, err := config.LoadConfig()
+    if err != nil {
+        log.Fatalf("Failed to load config: %v", err)
+    }
+
+    // 建立 Redis 連線（根據 config.yaml 的 redis.mode 自動選擇實作）
+    redisConn, err := cfg.ConnectRedis()
+    if err != nil {
+        log.Fatalf("Failed to connect to Redis: %v", err)
+    }
+    defer redisConn.Close()
+
+    // 初始化 Gin
+    router := gin.Default()
+    setupRoutes(router, redisConn)
+
+    // 啟動服務器
+    log.Printf("Starting server on %s with Redis mode: %s",
+        cfg.GetServerAddr(), cfg.Redis.Mode)
+    router.Run(cfg.GetServerAddr())
+}
+```
+
+##### 3. 新增 `internal/config/config_test.go` 測試
+
+- 測試 `ConnectRedis()` 參數驗證（不需要實際 Redis）
+- 測試不支援的 mode 錯誤處理
+
+#### 修改檔案清單
+
+| 檔案 | 動作 | 說明 |
+|------|------|------|
+| `internal/config/config.go` | 修改 | 新增 `ConnectRedis()` 方法 |
+| `cmd/main.go` | 修改 | 整合設定載入和 Redis 連線 |
+| `internal/config/config_test.go` | 修改 | 新增 `ConnectRedis` 測試 |
+
+#### 驗證方式
+
+```bash
+# 編譯測試
+cd APGo && go build ./...
+
+# 單元測試
+cd APGo && go test ./internal/config/... -v
+```
 
 ### 步驟 10: 實作 CacheController API 端點
 
