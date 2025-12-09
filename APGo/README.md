@@ -337,7 +337,7 @@ docker exec redis-raft1 redis-cli RAFT.INFO
 
 **注意**：首次構建會花費 **5-10 分鐘**編譯 RedisRaft 模組。
 
-### 步驟 8: 實作 RedisRaft 連線
+### 步驟 8: 實作 RedisRaft APGo連線
 
 - 建立 `RedisRaft` 結構，實作 `IRedisConn` 介面
 - 使用 Redis Raft 模式連線
@@ -360,6 +360,7 @@ docker exec redis-raft1 redis-cli RAFT.INFO
 - 建立依賴注入容器（可使用 `uber-go/dig` 或手動實作）
 - 根據設定檔的 `Redis:Mode` 自動註冊對應的 Redis 實作
 - 參考 C# 的 `RedisDI.AddRedisService` 方法
+- 不要完全照 net convention，要參考 go 的依賴注入最佳實作方式
 
 ### 步驟 10: 實作 CacheController API 端點
 
