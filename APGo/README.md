@@ -769,6 +769,73 @@ ok  github.com/AmandaChou/RedisLab/APGo/internal/redis
   - 整合測試執行步驟
   - Docker Compose 配置說明
 
+### 步驟 13: 修正本地 Docker 端口配置 ✅
+
+本地 Docker 容器 POC 不是真正的異地 server，應該使用不同的主機端口映射避免衝突。
+
+#### 修正內容
+
+**端口分配規劃**：
+
+| Redis 模式 | 容器名稱 | 容器內端口 | 主機端口 | API 端口 |
+|-----------|---------|-----------|---------|---------|
+| **Master-Slave** | redis-master | 6379 | **6371** | 8001 |
+|  | redis-slave1 | 6379 | **6372** | |
+|  | redis-slave2 | 6379 | **6373** | |
+| **Sentinel** | sentinel-master | 6379 | 6382 | 8001 |
+|  | sentinel-slave1 | 6379 | 6383 | |
+|  | sentinel-slave2 | 6379 | 6384 | |
+|  | sentinel1 | 26379 | 26379 | |
+|  | sentinel2 | 26379 | 26380 | |
+|  | sentinel3 | 26379 | 26381 | |
+| **Cluster** | redis-node1 | 6379 | 7001 | 8001 |
+|  | redis-node2 | 6379 | 7002 | |
+|  | redis-node3 | 6379 | 7003 | |
+|  | redis-node4 | 6379 | 7004 | |
+|  | redis-node5 | 6379 | 7005 | |
+|  | redis-node6 | 6379 | 7006 | |
+| **Raft** | redis-raft1 | 6379 | **6391** | **8001** |
+|  | redis-raft2 | 6379 | **6392** | |
+|  | redis-raft3 | 6379 | **6393** | |
+
+#### 修正檔案
+
+✅ **redis-master-slave/docker-compose-ap-go.yml**
+- redis-master: `6379` → `6371`
+- redis-slave1: `6380` → `6372`
+- redis-slave2: `6381` → `6373`
+
+✅ **redis-raft/docker-compose-ap-go.yml**
+- redis-raft-apgo API: `8080` → `8001`（與其他模式一致）
+- redis-raft1: `6379` → `6391`
+- redis-raft2: `6380` → `6392`
+- redis-raft3: `6381` → `6393`
+
+#### 設計理念
+
+1. **避免端口衝突**：不與本機預設 Redis (6379) 或其他服務衝突
+2. **保持一致性**：所有 API 服務統一使用 `8001` 端口
+3. **易於識別**：每種模式使用不同的端口範圍
+   - Master-Slave: `637x`
+   - Sentinel: `638x`
+   - Cluster: `700x`
+   - Raft: `639x`
+4. **容器內統一**：容器內部都使用標準 `6379` 端口，便於配置
+
+#### 測試方式
+
+```bash
+# Master-Slave
+curl http://localhost:8001/health  # API
+redis-cli -p 6371 PING             # Master
+redis-cli -p 6372 PING             # Slave1
+
+# Raft
+curl http://localhost:8001/health  # API
+redis-cli -p 6391 PING             # Raft1
+redis-cli -p 6392 PING             # Raft2
+```
+
 ## 使用說明
 
 ### 快速開始
@@ -1081,10 +1148,10 @@ GO_ENV=cluster APGO_SERVER_PORT=9090 go run ./cmd/main.go
 
 ## 技術棧
 
-- **Web Framework**: Gin
-- **Redis Client**: go-redis/redis v9
-- **Config**: viper
-- **DI**: uber-go/dig (或手動實作)
+- **Web Framework**: Gin - 輕量級 HTTP Web 框架
+- **Redis Client**: go-redis/redis v9 - 官方推薦的 Go Redis 客戶端
+- **Config**: Viper - 配置管理（支援 YAML、環境變數）
+- **依賴組裝**: Smart Config 模式 - 明確式建構，無需 DI 框架
 
 ## 參考資料
 
