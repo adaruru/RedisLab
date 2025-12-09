@@ -1,15 +1,14 @@
 services:
-  redis-raft-ap1:
+  redis-raft-apgo:
     build:
       context: ../
-      dockerfile: AP/Dockerfile
-    container_name: redis-raft-ap1
+      dockerfile: APGo/Dockerfile
+    container_name: redis-raft-apgo
     environment:
-    - ASPNETCORE_ENVIRONMENT=RedisRaft
-    - ASPNETCORE_HTTP_PORTS=80
+    - GO_ENV=raft
     - TZ=Asia/Taipei
     ports:
-    - "8000:80"
+    - "8080:8080"
     depends_on:
     - redis-raft1
     - redis-raft2

@@ -1,0 +1,43 @@
+# RedisRaft Dockerfile
+# 編譯並安裝 RedisRaft 模組
+
+FROM redis:6.2.19 AS builder
+
+# 安裝編譯工具和依賴
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libtool \
+    autoconf \
+    automake \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# 下載 RedisRaft 源碼
+WORKDIR /tmp
+RUN git clone --depth 1 --branch v1.1.0 https://github.com/RedisLabs/redisraft.git
+
+# 編譯 RedisRaft
+WORKDIR /tmp/redisraft
+RUN mkdir -p build && cd build && \
+    cmake .. && \
+    make
+
+# 最終映像
+FROM redis:6.2.19
+
+# 從 builder 複製編譯好的模組
+RUN mkdir -p /usr/lib/redis/modules
+COPY --from=builder /tmp/redisraft/build/redisraft.so /usr/lib/redis/modules/
+
+# 設定工作目錄
+WORKDIR /data
+
+# 暴露端口
+# 6379: Redis 主要端口
+# 6380: Raft 內部通訊端口
+EXPOSE 6379 6380
+
+# 預設命令（會被 docker-compose 覆蓋）
+CMD ["redis-server", "--loadmodule", "/usr/lib/redis/modules/redisraft.so"]
